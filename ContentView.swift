@@ -1,6 +1,3 @@
-import SwiftUI
-import Combine
-
 extension NSTextField {
         open override var focusRingType: NSFocusRingType {
                 get { .none }
@@ -139,20 +136,28 @@ struct ContentView2: View {
         SearchableView(items: items,
                        fuzzyMatchKey: fuzzyMatchKey,
                        onItemSelected: onItemSelected) { filteredItems, selectedItem, focusedIndex in
-            // List of filtered items with highlighted focused item
-            List {
-                ForEach(Array(filteredItems.enumerated()), id: \.offset) { index, item in
-                    Text(item)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(5)
-                        .background(index == focusedIndex ? Color.blue.opacity(0.2) : Color.clear)
-                        .cornerRadius(5)
-                        .onTapGesture {
-                            selectedItem.wrappedValue = item
-                        }
+            ScrollViewReader { scrollProxy in
+                List {
+                    ForEach(Array(filteredItems.enumerated()), id: \.offset) { index, item in
+                        Text(item)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(5)
+                            .background(index == focusedIndex ? Color.blue.opacity(0.2) : Color.clear)
+                            .cornerRadius(5)
+                            .id(index) // Add ID for scrolling
+                            .onTapGesture {
+                                selectedItem.wrappedValue = item
+                            }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .onChange(of: focusedIndex) { _, newIndex in
+                    // Scroll to focused index when it changes
+                    withAnimation {
+                        scrollProxy.scrollTo(newIndex, anchor: .center)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity)
         }
     }
 }
@@ -175,19 +180,28 @@ struct ContentView: View {
                        fuzzyMatchKey: fuzzyMatchKey) { filteredItems, selectedItem, focusedIndex in
             HStack {
                 // Left side: List of filtered items with keyboard focus highlight
-                List {
-                    ForEach(Array(filteredItems.enumerated()), id: \.offset) { index, item in
-                        Text(item)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(5)
-                            .background(index == focusedIndex ? Color.blue.opacity(0.2) : Color.clear)
-                            .cornerRadius(5)
-                            .onTapGesture {
-                                selectedItem.wrappedValue = item
-                            }
+                ScrollViewReader { scrollProxy in
+                    List {
+                        ForEach(Array(filteredItems.enumerated()), id: \.offset) { index, item in
+                            Text(item)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(5)
+                                .background(index == focusedIndex ? Color.blue.opacity(0.2) : Color.clear)
+                                .cornerRadius(5)
+                                .id(index) // Add ID for scrolling
+                                .onTapGesture {
+                                    selectedItem.wrappedValue = item
+                                }
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .onChange(of: focusedIndex) { _, newIndex in
+                        // Scroll to focused index when it changes
+                        withAnimation {
+                            scrollProxy.scrollTo(newIndex, anchor: .center)
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity)
 
                 Divider()
 
@@ -213,4 +227,4 @@ struct ContentView: View {
 //#Preview {
 ////    ContentView2()
 //     ContentView()
-//}
+//} 
