@@ -12,7 +12,7 @@ extension NSTextField {
 /// A generic view that provides fuzzy search functionality with keyboard navigation.
 /// It displays a search bar at the top, and the child closure
 /// can define how to layout the bottom portion (e.g. a list, details, etc.).
-struct SearchableView<Item: Hashable, Content: View>: View {
+struct SearchableView<Item, Content: View>: View {
     @State private var searchText = ""
     @State private var selectedItem: Item? = nil
     @State private var focusedIndex: Int = 0
@@ -56,7 +56,7 @@ struct SearchableView<Item: Hashable, Content: View>: View {
     ///   - selectedItem: A binding to the currently selected item.
     ///   - focusedIndex: The index of the item currently focused by keyboard navigation.
     @ViewBuilder let content:
-        (_ filteredItems: [Item], _ selectedItem: Binding<Item?>, _ focusedIndex: Int) -> Content
+        (_ filteredItems: [Item], _ selectedItem: Binding<Item?>, _ focusedIndex: Binding<Int>) -> Content
 
     /// Returns only the items that pass the fuzzyMatch filter.
     var filteredItems: [Item] {
@@ -67,7 +67,7 @@ struct SearchableView<Item: Hashable, Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             // A search bar at the top with keyboard handling
-            TextField("Search...", text: $searchText)
+            TextField("", text: $searchText, prompt: Text("Search"))
                 .font(.system(size: 17))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
@@ -75,7 +75,9 @@ struct SearchableView<Item: Hashable, Content: View>: View {
                 .onAppear {
                     isSearchFieldFocused = true
                     // Set up event monitor when view appears
-                    eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { event in
+                    eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [
+                        .leftMouseDown, .rightMouseDown,
+                    ]) { event in
                         // Small delay to let the click process first
                         DispatchQueue.main.async {
                             isSearchFieldFocused = true
@@ -93,22 +95,25 @@ struct SearchableView<Item: Hashable, Content: View>: View {
                     focusedIndex = 0
                 }
                 // Keep focus when window becomes active
-                .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+                .onReceive(
+                    NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
+                ) { _ in
                     isSearchFieldFocused = true
                     focusedIndex = 0
                 }
                 // Keep focus when window is activated
-                .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeMainNotification)) { _ in
-                    isSearchFieldFocused = true
-                    focusedIndex = 0
-                }
+                // .onReceive(
+                //     NotificationCenter.default.publisher(for: NSWindow.didBecomeMainNotification)
+                // ) { _ in
+                //     isSearchFieldFocused = true
+                //     focusedIndex = 0
+                // }
                 .onSubmit {
                     if !filteredItems.isEmpty && focusedIndex < filteredItems.count {
                         selectedItem = filteredItems[focusedIndex]
                     }
                 }
                 .onKeyPress(.upArrow) {
-                    print("upArrow")
                     focusedIndex = max(0, focusedIndex - 1)
                     if !filteredItems.isEmpty && focusedIndex < filteredItems.count {
                         selectedItem = filteredItems[focusedIndex]
@@ -116,7 +121,6 @@ struct SearchableView<Item: Hashable, Content: View>: View {
                     return .handled
                 }
                 .onKeyPress(.downArrow) {
-                    print("downArrow")
                     focusedIndex = min(filteredItems.count - 1, focusedIndex + 1)
                     if !filteredItems.isEmpty && focusedIndex < filteredItems.count {
                         selectedItem = filteredItems[focusedIndex]
@@ -124,7 +128,6 @@ struct SearchableView<Item: Hashable, Content: View>: View {
                     return .handled
                 }
                 .onKeyPress(.return) {
-                    print("return")
                     if let selectedItem = selectedItem {
                         if let onItemSelected = onItemSelected {
                             onItemSelected(selectedItem)
@@ -134,45 +137,76 @@ struct SearchableView<Item: Hashable, Content: View>: View {
                 }
 
             // Child closure decides how to layout the filtered items and selected item details
-            content(filteredItems, $selectedItem, focusedIndex)
+            content(filteredItems, $selectedItem, $focusedIndex)
         }
-        .onChange(of: filteredItems) { _, newItems in
+        .onChange(of: filteredItems.count) { _, newCount in
             // Reset focused index when the filtered results change
-            focusedIndex = newItems.isEmpty ? 0 : min(focusedIndex, newItems.count - 1)
+            focusedIndex = newCount == 0 ? 0 : min(focusedIndex, newCount - 1)
         }
     }
 }
 
-struct ScrollingSelectionList<Item: Hashable>: View {
+struct ScrollingSelectionList<Item>: View {
     /// This will get passed in the filtered items, the selected item, and the focused index
-    let filteredItems: [Item]
-    let selectedItem: Binding<Item?>
-    let focusedIndex: Int
-    let itemToText: (Item) -> String
-    let elem: (Item) -> any View
+    let items: [Item]
+    var selectedItem: Binding<Item?>
+    var focusedIndex: Binding<Int>
+    var onItemClicked: ((Item) -> Void)?
+    var onItemSelected: ((Item) -> Void)?
+    let highlightColor: Color = Color.blue.opacity(0.2)
+    @State private var hoveredIndex: Int? = nil
+    @State private var isKeyboardNavigation: Bool = true
 
+    @State private var lastTapTime: Date? = nil
+    let tapThreshold: TimeInterval = 0.3 // Adjust as needed
+
+    let elem: (Item) -> any View
     var body: some View {
         ScrollViewReader { scrollProxy in
             List {
-                ForEach(Array(filteredItems.enumerated()), id: \.offset) { index, item in
-                    AnyView(elem(item))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(5)
-                        .background(index == focusedIndex ? Color.blue.opacity(0.2) : Color.clear)
-                        .cornerRadius(5)
-                        .id(index)  // Add ID for ScrollViewReader
-                        .onTapGesture {
-                            selectedItem.wrappedValue = item
+                ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                    ZStack {
+                        Rectangle()
+                            .fill(Color.clear)
+                            .contentShape(Rectangle())  // This makes the entire area interactive
+
+                        AnyView(elem(item))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(5)
+                    }
+                    .background(
+                        index == focusedIndex.wrappedValue
+                            ? highlightColor
+                            : index == hoveredIndex ? highlightColor.opacity(0.5) : Color.clear
+                    )
+                    .cornerRadius(5)
+                    .id(index)  // Add ID for ScrollViewReader
+                    .onTapGesture {
+                        selectedItem.wrappedValue = item
+                        focusedIndex.wrappedValue = index
+                        isKeyboardNavigation = false
+                        onItemClicked?(item)
+
+                        // Check if the double tap is within the threshold
+                        let now = Date()
+                        if let lastTap = lastTapTime, now.timeIntervalSince(lastTap) < tapThreshold {
+                            onItemSelected?(item)
                         }
-                }
-            }
-            .onChange(of: focusedIndex) { _, newIndex in
-                // Only scroll enough to ensure the item is visible
-                if filteredItems.indices.contains(newIndex) {
-                    withAnimation {
-                        scrollProxy.scrollTo(newIndex, anchor: .center)
+                        lastTapTime = now
+                    }
+                    .onHover { hovering in
+                        hoveredIndex = hovering ? index : nil
                     }
                 }
+            }
+            .onChange(of: focusedIndex.wrappedValue) { _, newIndex in
+                // Only scroll enough to ensure the item is visible
+                if isKeyboardNavigation && items.indices.contains(newIndex) {
+                    withAnimation {
+                        scrollProxy.scrollTo(newIndex, anchor: .leading)
+                    }
+                }
+                isKeyboardNavigation = true
             }
         }
         .frame(maxWidth: .infinity)
@@ -180,7 +214,7 @@ struct ScrollingSelectionList<Item: Hashable>: View {
 }
 
 /// An example usage of `SearchableView` that displays a list of fruits with keyboard navigation
-struct ContentView2: View {
+struct ContentViewSimple: View {
     let items = [
         "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
         "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
@@ -197,11 +231,33 @@ struct ContentView2: View {
             onItemSelected: onItemSelected
         ) { filteredItems, selectedItem, focusedIndex in
             ScrollingSelectionList(
-                filteredItems: filteredItems,
+                items: filteredItems,
                 selectedItem: selectedItem,
                 focusedIndex: focusedIndex,
-                itemToText: { item in item },
+                onItemClicked: { _ in },
+                onItemSelected: onItemSelected,
                 elem: { item in Text(item) })
+        }
+    }
+}
+
+struct GlobalSearchView: View {
+    let items: [Command]
+    let onItemSelected: (Command) -> Void
+
+    var body: some View {
+        SearchableView(
+            items: items,
+            fuzzyMatchKey: { item in item.title },
+            onItemSelected: onItemSelected
+        ) { filteredItems, selectedItem, focusedIndex in
+            ScrollingSelectionList(
+                items: filteredItems,
+                selectedItem: selectedItem,
+                focusedIndex: focusedIndex,
+                onItemClicked: onItemSelected,
+                onItemSelected: onItemSelected,
+                elem: { item in Text(item.title) })
         }
     }
 }
@@ -214,20 +270,26 @@ struct ContentView: View {
         "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
     ]
 
+    func onItemSelected(_ item: String) {
+        print("selected item: \(item)")
+    }
+
     var body: some View {
         SearchableView(
             items: items,
-            fuzzyMatchKey: { item in item }
+            fuzzyMatchKey: { item in item },
+            onItemSelected: onItemSelected
         ) { filteredItems, selectedItem, focusedIndex in
             HStack {
                 ScrollingSelectionList(
-                    filteredItems: filteredItems,
+                    items: filteredItems,
                     selectedItem: selectedItem,
                     focusedIndex: focusedIndex,
-                    itemToText: { item in item },
+                    onItemClicked: { _ in },
+                    onItemSelected: onItemSelected,
                     elem: { item in
                         HStack(spacing: 8) {
-                           Text(item)
+                            Text(item)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             Spacer()
@@ -256,8 +318,7 @@ struct ContentView: View {
     }
 }
 
-//#Preview {
-////    ContentView2()
-//     ContentView()
-//}//}
-//}
+#Preview {
+    //    ContentViewSimple()
+    ContentView()
+}  //}
