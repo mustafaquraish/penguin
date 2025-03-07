@@ -195,6 +195,10 @@
 			);
 			mainGroup = 453FF2BA2D7A8CA600DE7CFA;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				45311F802D7ADBA7002B1257 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				45311F812D7ADC21002B1257 /* XCRemoteSwiftPackageReference "HotKey" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 453FF2C42D7A8CA600DE7CFA /* Products */;
 			projectDirPath = "";
@@ -541,6 +545,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		45311F802D7ADBA7002B1257 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.2.4;
+			};
+		};
+		45311F812D7ADC21002B1257 /* XCRemoteSwiftPackageReference "HotKey" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/soffes/HotKey";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 453FF2BB2D7A8CA600DE7CFA /* Project object */;
 }

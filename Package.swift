@@ -10,7 +10,8 @@ let package = Package(
         .executable(name: "Penguin", targets: ["Penguin"]),
     ],
     dependencies: [
-        // Add dependencies here if needed
+        .package(url: "https://github.com/sindresorhus/KeyboardShortcuts", from: "2.2.4"),
+        .package(url: "https://github.com/soffes/HotKey", from: "0.2.1"),
     ],
     targets: [
         .executableTarget(

@@ -13,18 +13,9 @@ struct PenguinApp: App {
     }
 }
 
-// Add this class to your file
-class PenguinWindowDelegate: NSObject, NSWindowDelegate {
-    func windowDidResignKey(_ notification: Notification) {
-        if let window = notification.object as? NSWindow {
-            window.close()
-        }
-    }
-}
 
-class AppDelegate: NSObject, NSApplicationDelegate {
+class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow?
-    let windowDelegate = PenguinWindowDelegate()
     private var statusItem: NSStatusItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -38,7 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
         guard let window = window else { return }
-        window.delegate = windowDelegate
+        window.delegate = self
 
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
@@ -141,6 +132,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func toggleSearchBar() {
         if window?.isVisible == false {
             window?.setIsVisible(true)
+            // bring it to front and focus the search field
+            NSApp.activate(ignoringOtherApps: true)
+
         } else {
             window?.setIsVisible(false)
         }
@@ -150,11 +144,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         print("Open preferences")
     }
 
-        // Close window when it loses focus
+    // Close window when it loses focus
     func windowDidResignKey(_ notification: Notification) {
-        if let window = notification.object as? NSWindow {
-            window.setIsVisible(false)
-        }
+        window?.setIsVisible(false)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
