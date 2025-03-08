@@ -42,8 +42,12 @@ struct ClipboardItem: Codable, Identifiable {
 class ClipboardManager: NSObject {
     static let shared = ClipboardManager()
 
-    // FIXME: Make this configurable
-    private let maxItems = 100
+    @UserDefault<Int>(key: "clipboardmanager.maxItems", defaultValue: 100)
+    public var maxItems: Int
+
+    @UserDefault<Double>(key: "clipboardmanager.refreshTime", defaultValue: 0.5)
+    public var refreshTime: Double
+
     private var clipboardItems: [ClipboardItem] = []
     private var timer: Timer?
     private var lastChangeCount: Int = 0
@@ -67,7 +71,7 @@ class ClipboardManager: NSObject {
         lastChangeCount = NSPasteboard.general.changeCount
 
         // Check for clipboard changes every second
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: refreshTime, repeats: true) { [weak self] _ in
             self?.checkClipboardChanges()
         }
     }
@@ -75,6 +79,13 @@ class ClipboardManager: NSObject {
     public func stopMonitoring() {
         timer?.invalidate()
         timer = nil
+    }
+
+
+    public func updateRefreshTime(newRefreshTime: Double) {
+        stopMonitoring()
+        refreshTime = newRefreshTime
+        startMonitoring()
     }
 
     public func search(query: String) -> [ClipboardItem] {

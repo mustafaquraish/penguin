@@ -10,6 +10,19 @@ extension NSTextField {
     }
 }
 
+struct Labelled: View {
+    let label: String
+
+    @ViewBuilder let content: () -> any View
+
+    var body: some View {
+        HStack {
+            Text(label)
+            AnyView(content())
+        }
+    }
+}
+
 // This view will prevent dragging when the user clicks on it.
 struct NonDraggableView<Content: View>: NSViewRepresentable {
     typealias NSViewType = NSHostingView<Content>

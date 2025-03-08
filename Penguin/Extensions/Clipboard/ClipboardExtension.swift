@@ -6,7 +6,7 @@ struct ClipboardView: View {
 
     func onItemSelected(_ item: ClipboardItem) {
         print("Pasting \(item.text.count) characters")
-
+        closeMainWindowAndPasteTextIntoApplication(text: item.text)
     }
 
     var body: some View {
@@ -77,6 +77,44 @@ struct ClipboardView: View {
     }
 }
 
+struct ClipboardSettingsView: View {
+    @State private var maxItems: Int
+    @State private var refreshTime: Double
+
+    init() {
+        self.maxItems = ClipboardManager.shared.maxItems
+        self.refreshTime = ClipboardManager.shared.refreshTime
+    }
+
+    let numberFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 3
+        return formatter
+    }()
+
+    var body: some View {
+        Form {
+            Labelled(label: "Max Items") {
+                TextField("", value: $maxItems, formatter: numberFormatter)
+                    .frame(maxWidth: 100)
+                    .onChange(of: maxItems) { _, newValue in
+                        ClipboardManager.shared.maxItems = newValue
+                    }
+            }
+
+            Labelled(label: "Polling time (s)") {
+                TextField("", value: $refreshTime, formatter: numberFormatter)
+                    .frame(maxWidth: 100)
+                    .onChange(of: refreshTime) { _, newValue in
+                        ClipboardManager.shared.updateRefreshTime(newRefreshTime: newValue)
+                    }
+            }
+        }
+    }
+}
+
 public class ClipboardExtension: PenguinExtension {
     public let identifier = "com.penguin.clipboard"
     public let name = "Clipboard"
@@ -93,6 +131,9 @@ public class ClipboardExtension: PenguinExtension {
                 icon: NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: "Clipboard"),
                 action: {
                     ClipboardView()
+                },
+                settingsView: {
+                    ClipboardSettingsView()
                 }
             )
         ]

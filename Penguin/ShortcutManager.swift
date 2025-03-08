@@ -1,7 +1,7 @@
 import KeyboardShortcuts
 
 extension KeyboardShortcuts.Name {
-    static let toggleSearchBar = KeyboardShortcuts.Name("toggleSearchBar")
+    static let togglePenguinWindow = KeyboardShortcuts.Name("togglePenguinWindow")
 }
 
 extension KeyboardShortcuts.Name {
@@ -12,7 +12,6 @@ extension KeyboardShortcuts.Name {
 
 /// Manages shortcuts for various commands in Penguin
 public class ShortcutManager {
-    public static let searchBarShortcut = KeyboardShortcuts.Name.toggleSearchBar
     private static var commandShortcuts: [String: KeyboardShortcuts.Name] = [:]
 
     public static func registerCommandShortcut(commandId: String, name: String)

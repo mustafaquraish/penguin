@@ -41,9 +41,7 @@ public class WindowExtension: PenguinExtension {
                 extIdentifier: identifier,
                 title: "Window: Next Display",
                 subtitle: "Move window to next display",
-                icon: NSImage(
-                    systemSymbolName: "arrow.right.to.line.alt.fill",
-                    accessibilityDescription: "Next display"),
+                icon: NSImage(systemSymbolName: "arrow.right.arrow.left", accessibilityDescription: "Next display"), 
                 action: {
                     self.wm.cycleActiveWindowAcrossDisplays()
                     return nil
@@ -55,7 +53,7 @@ public class WindowExtension: PenguinExtension {
                 title: "Window: Maximize",
                 subtitle: "Maximize window",
                 icon: NSImage(
-                    systemSymbolName: "arrow.up.to.line.alt.fill",
+                    systemSymbolName: "rectangle.fill",
                     accessibilityDescription: "Maximize"),
                 action: {
                     self.wm.maximizeActiveWindow()
@@ -68,7 +66,7 @@ public class WindowExtension: PenguinExtension {
                 title: "Window: Almost Maximize",
                 subtitle: "Almost maximize window (80% of screen)",
                 icon: NSImage(
-                    systemSymbolName: "arrow.up.to.line.alt.fill",
+                    systemSymbolName: "rectangle",
                     accessibilityDescription: "Almost maximize"),
                 action: {
                     self.wm.almostMaximizeActiveWindow(pct: 0.8)

@@ -3,7 +3,8 @@ import Cocoa
 import KeyboardShortcuts
 import SwiftUI
 
-public struct Command {
+public struct Command: Identifiable {
+    public let id = UUID()
     let title: String
     let subtitle: String?
     let icon: NSImage?
@@ -104,6 +105,7 @@ public class ExtensionManager {
 
     /// Get all available commands from all extensions
     public func getAllCommands() -> [Command] {
+        // TODO: Cache all the commands, but need some way of handling changes to extensions / applications
         extensions.flatMap { ext in
             ext.getCommands()
         }

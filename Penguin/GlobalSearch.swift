@@ -3,7 +3,7 @@ import SwiftUI
 import KeyboardShortcuts
 
 struct GlobalSearchView: View {
-    let items: [Command]
+    let items: [Command] = ExtensionManager.shared.getAllCommands()
     let onItemSelected: (Command) -> Void
 
     var body: some View {
@@ -19,6 +19,14 @@ struct GlobalSearchView: View {
                 onItemSelected: onItemSelected,
                 elem: { item in
                     HStack(spacing: 8) {
+                        if let icon = item.icon {
+                            Image(nsImage: icon)
+                                .resizable()
+                                .frame(width: 16, height: 16)
+                        } else {
+                            Image(systemName: "")
+                                .frame(width: 16, height: 16)
+                        }
                         Text(item.title)
                             .lineLimit(1)
                             .truncationMode(.tail)

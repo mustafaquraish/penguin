@@ -9,6 +9,7 @@ class OverlayPanel: NSPanel {
 @main
 class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     public static let shared = Penguin()
+    public static var penguinIcon: NSImage?
     public var previousActiveApp: NSRunningApplication?
 
     var window: OverlayPanel?
@@ -44,8 +45,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func setDefaultView() {
         setWindowView(
             view: GlobalSearchView(
-                // TODO: Cache all the commands
-                items: extensionManager.getAllCommands(),
                 onItemSelected: runCommand
             ))
     }
@@ -66,7 +65,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window?.contentView = hostingView
     }
 
-    func setupMainWindow(commands: [Command]) {
+    func setupMainWindow() {
         // Create the window and set the content view
 
         // FIXME: We can't paste anything into the search bar because the window is non-activating.
@@ -97,7 +96,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Create the NSHostingView to hold our SwiftUI contentView
         setWindowView(
             view: GlobalSearchView(
-                items: commands,
                 onItemSelected: runCommand
             ))
 
@@ -112,16 +110,17 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupStatusItem()
 
         // TODO: It is annoying to manually specify these... find some way to auto-register them.
-        // extensionManager.registerExtension(FruitExtension())
-        // extensionManager.registerExtension(TwoPanelExtension())
-        // extensionManager.registerExtension(NavigationPanelExtension())
         extensionManager.registerExtension(WindowExtension())
         extensionManager.registerExtension(ClipboardExtension())
 
-        let settingsExtension = SettingsExtension()
-        extensionManager.registerExtension(settingsExtension)
-        assert(settingsExtension.getCommands().count == 1)
-        settingsCommand = settingsExtension.getCommands()[0]
+        let preferencesExtension = PreferencesExtension()
+        extensionManager.registerExtension(preferencesExtension)
+        assert(preferencesExtension.getCommands().count == 1)
+        settingsCommand = preferencesExtension.getCommands()[0]
+
+        // TODO: Currently command ordering is defined by the order of registration.
+        //       We need each command to track the last time it was invoked and sort by that.
+        extensionManager.registerExtension(ApplicationsExtension())
 
         print("Fetching commands")
         // TODO: This is blocking the app from launching. Ideally, we should launch some background
@@ -131,19 +130,21 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let commands = extensionManager.getAllCommands()
         print("Commands fetched: \(commands.count)")
 
-        setupMainWindow(commands: commands)
-        setupShortcuts(commands: commands)
+        setupMainWindow()
+        setupShortcuts()
     }
 
-    private func setupShortcuts(commands: [Command]) {
+    private func setupShortcuts() {
+        let commands = extensionManager.getAllCommands()
+
         // Set default shortcut for toggling search bar
-        KeyboardShortcuts.onKeyUp(for: .toggleSearchBar) { [weak self] in
+        KeyboardShortcuts.onKeyUp(for: .togglePenguinWindow) { [weak self] in
             self?.toggleSearchBar()
         }
         // Set cmd+ctrl+option+/ shortcut
         KeyboardShortcuts.setShortcut(
             KeyboardShortcuts.Shortcut(.slash, modifiers: [.command, .control, .option]),
-            for: .toggleSearchBar
+            for: .togglePenguinWindow
         )
         // Local monitoring for cmd+, to open preferences
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
@@ -171,7 +172,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // Use a penguin emoji as our icon
             let penguinEmoji = "🐧"
             let penguinImage = NSImage(
-                size: NSSize(width: 18, height: 18),
+                size: NSSize(width: 14, height: 14),
                 flipped: false,
                 drawingHandler: { (rect) in
                     penguinEmoji.draw(in: rect)
@@ -179,6 +180,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
             )
             penguinImage.lockFocus()
+            Penguin.penguinIcon = penguinImage
 
             button.image = penguinImage
             button.action = #selector(toggleSearchBar)
@@ -238,30 +240,30 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc private func openPreferencesWindowOld() {
         // If preferences window exists, just bring it to front
-        if let controller = preferencesWindowController {
-            controller.showWindow(nil)
-            controller.window?.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
+        // if let controller = preferencesWindowController {
+        //     controller.showWindow(nil)
+        //     controller.window?.makeKeyAndOrderFront(nil)
+        //     NSApp.activate(ignoringOtherApps: true)
+        //     return
+        // }
 
-        // Otherwise create a new window
-        let preferencesWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 500, height: 300),
-            styleMask: [.titled, .closable],
-            backing: .buffered,
-            defer: false
-        )
-        // Create and store the window controller
-        preferencesWindowController = PreferencesWindowController(
-            window: preferencesWindow,
-            previousActiveApp: previousActiveApp
-        )
-        preferencesWindowController?.showWindow(nil)
+        // // Otherwise create a new window
+        // let preferencesWindow = NSWindow(
+        //     contentRect: NSRect(x: 0, y: 0, width: 500, height: 300),
+        //     styleMask: [.titled, .closable],
+        //     backing: .buffered,
+        //     defer: false
+        // )
+        // // Create and store the window controller
+        // preferencesWindowController = PreferencesWindowController(
+        //     window: preferencesWindow,
+        //     previousActiveApp: previousActiveApp
+        // )
+        // preferencesWindowController?.showWindow(nil)
 
-        // Bring preferences window to front
-        NSApp.activate(ignoringOtherApps: true)
-        preferencesWindow.makeKeyAndOrderFront(nil)
+        // // Bring preferences window to front
+        // NSApp.activate(ignoringOtherApps: true)
+        // preferencesWindow.makeKeyAndOrderFront(nil)
     }
 
     // Update window delegate method

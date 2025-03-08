@@ -1,18 +1,38 @@
 import Cocoa
-import SwiftUI
 import KeyboardShortcuts
+import SwiftUI
 
-struct SettingsView: View {
-    // TODO: Add a "dummy" command or some other way to configure the settings of
-    //       the whole application. Currently, we can only configure the settings
-    //       of the different commands.
-    //       Perhaps also extension-specific settings, not only command-specific.
-    let items: [Command]
+struct PreferencesView: View {
+    private static var dummyApplicationSettingsCommand: Command?
+
+
+    var items: [Command] {
+        // Initialize the dummy command if it's not already set
+        if PreferencesView.dummyApplicationSettingsCommand == nil {
+            // This command is not exposed to the user. However, the way we have preferences
+            // defined, settings views can only be attached to commands, so we'll make a dummy
+            // command that will handle general application settings.
+            let cmd = Command(
+                extensionId: "com.penguin",
+                extensionName: "Penguin",
+                title: "Penguin",
+                subtitle: "General Preferences",
+                icon: Penguin.penguinIcon,
+                shortcutName: .togglePenguinWindow,
+                action: { nil },  // This command is not used, it's just a placeholder
+                settingsView: { GeneralPenguinPreferencesView() }
+            )
+            PreferencesView.dummyApplicationSettingsCommand = cmd
+        }
+        return [PreferencesView.dummyApplicationSettingsCommand!] + ExtensionManager.shared.getAllCommands().filter {
+            $0.shortcutName != .penguinSettings
+        }
+    }
+
 
     func onItemSelected(_ item: Command) {
         print("selected item: \(item)")
     }
-
 
     var body: some View {
         SearchableView(
@@ -28,6 +48,14 @@ struct SettingsView: View {
                     onItemSelected: onItemSelected,
                     elem: { item in
                         HStack(spacing: 8) {
+                            if let icon = item.icon {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .frame(width: 16, height: 16)
+                            } else {
+                                Image(systemName: "")
+                                    .frame(width: 16, height: 16)
+                            }
                             Text(item.title)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
@@ -38,7 +66,6 @@ struct SettingsView: View {
                 )
 
                 Divider()
-
 
                 HStack {
                     if let selectedItem = selectedItem {
@@ -52,11 +79,12 @@ struct SettingsView: View {
                                 .font(.body)
                                 .foregroundColor(.gray)
 
-
                             Spacer()
                             // Right side: Details for the selected item
                             if let settingsView = selectedItem.settingsView() {
                                 AnyView(settingsView)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.horizontal, 20)
 
                             } else {
                                 Text("No additional settings")
@@ -65,10 +93,12 @@ struct SettingsView: View {
                             }
                             Spacer()
                             Divider()
-                            Text("Extension: \(selectedItem.extensionName) (\(selectedItem.extensionId))")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                                .padding(.bottom, 10)
+                            Text(
+                                "Extension: \(selectedItem.extensionName) (\(selectedItem.extensionId))"
+                            )
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
+                            .padding(.bottom, 10)
                         }
                     } else {
                         EmptyView()
@@ -80,31 +110,37 @@ struct SettingsView: View {
     }
 }
 
+struct GeneralPenguinPreferencesView: View {
+    var body: some View {
+        VStack {
+            Text("No additional settings (yet)")
+            Text("Change the Penguin hotkey on the left")
+        }
+    }
+}
+
 extension KeyboardShortcuts.Name {
     static let penguinSettings = KeyboardShortcuts.Name("com.penguin.settings")
 }
 
-public class SettingsExtension: PenguinExtension {
-    public let identifier = "com.penguin.settings"
-    public let name = "Settings"
+public class PreferencesExtension: PenguinExtension {
+    public let identifier = "com.penguin.preferences"
+    public let name = "Preferences"
 
     var commands: [Command] = []
+
 
     init() {
         commands = [
             Command(
                 extensionId: identifier,
                 extensionName: name,
-                title: "Settings",
-                subtitle: "Open settings",
-                icon: NSImage(systemSymbolName: "gear", accessibilityDescription: "Settings"),
+                title: "Preferences",
+                subtitle: "Open preferences",
+                icon: Penguin.penguinIcon,
                 shortcutName: .penguinSettings,
                 action: {
-                    SettingsView(
-                        items: ExtensionManager.shared
-                            .getAllCommands()
-                            .filter { $0.shortcutName != .penguinSettings }
-                    )
+                    PreferencesView()
                 }
             )
         ]
