@@ -4,6 +4,10 @@ import KeyboardShortcuts
 import SwiftUI
 
 public struct Command: Identifiable {
+    // TODO: ID should be something like "com.penguin.extension.command_title"
+    //       so we can uniquely use it to relate for eg: shortcuts or last access times.
+    //       This is some mix of the extension name and the title. Some relevant code
+    //       is in `ShortcutManager.generateCommandId`.
     public let id = UUID()
     let title: String
     let subtitle: String?

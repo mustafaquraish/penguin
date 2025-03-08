@@ -50,9 +50,6 @@ struct SearchableView<Item, Content: View>: View {
     @FocusState private var isSearchFieldFocused: Bool
     @State private var eventMonitor: Any? = nil
 
-    // FIXME: This is huge spaghetti. No idea what the difference between `let`, `var` and `@ViewBuilder` is
-    //        here and why the AI overlords picked them. Need to learn more.
-
     /// The full list of items to search.
     let items: [Item]
 
@@ -77,15 +74,10 @@ struct SearchableView<Item, Content: View>: View {
     let fuzzyMatchKey: (Item) -> String
 
     /// Optional callback triggered when the item is selected.
-    var onItemSelected: ((Item) -> Void)?
+    let onItemSelected: ((Item) -> Void)?
 
     /// The child closure that defines how to layout the
     /// bottom portion of the view (list, details, etc.).
-    ///
-    /// - Parameters:
-    ///   - filteredItems: The list of items that match the current search text.
-    ///   - selectedItem: A binding to the currently selected item.
-    ///   - focusedIndex: The index of the item currently focused by keyboard navigation.
     @ViewBuilder let content:
         (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>) -> Content
 

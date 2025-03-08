@@ -3,6 +3,8 @@ import SwiftUI
 import KeyboardShortcuts
 
 struct GlobalSearchView: View {
+    // TODO: We should store the last access times of each known command and sort the commands
+    //       by the last access time.
     let items: [Command] = ExtensionManager.shared.getAllCommands()
     let onItemSelected: (Command) -> Void
 

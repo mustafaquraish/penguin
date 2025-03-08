@@ -3,49 +3,36 @@ import KeyboardShortcuts
 import SwiftUI
 
 struct PreferencesView: View {
-    private static var dummyApplicationSettingsCommand: Command?
-
+    private static var dummyApplicationSettingsCommand: Command = Command(
+        extensionId: "com.penguin",
+        extensionName: "Penguin",
+        title: "Penguin",
+        subtitle: "General Preferences",
+        icon: Penguin.penguinIcon,
+        shortcutName: .togglePenguinWindow,
+        action: { nil },  // This command is not used, it's just a placeholder
+        settingsView: { GeneralPenguinPreferencesView() }
+    )
 
     var items: [Command] {
-        // Initialize the dummy command if it's not already set
-        if PreferencesView.dummyApplicationSettingsCommand == nil {
-            // This command is not exposed to the user. However, the way we have preferences
-            // defined, settings views can only be attached to commands, so we'll make a dummy
-            // command that will handle general application settings.
-            let cmd = Command(
-                extensionId: "com.penguin",
-                extensionName: "Penguin",
-                title: "Penguin",
-                subtitle: "General Preferences",
-                icon: Penguin.penguinIcon,
-                shortcutName: .togglePenguinWindow,
-                action: { nil },  // This command is not used, it's just a placeholder
-                settingsView: { GeneralPenguinPreferencesView() }
-            )
-            PreferencesView.dummyApplicationSettingsCommand = cmd
-        }
-        return [PreferencesView.dummyApplicationSettingsCommand!] + ExtensionManager.shared.getAllCommands().filter {
-            $0.shortcutName != .penguinSettings
-        }
-    }
-
-
-    func onItemSelected(_ item: Command) {
-        print("selected item: \(item)")
+        return [PreferencesView.dummyApplicationSettingsCommand]
+            + ExtensionManager.shared.getAllCommands().filter {
+                $0.shortcutName != .penguinSettings
+            }
     }
 
     var body: some View {
         SearchableView(
             items: items,
             fuzzyMatchKey: { item in item.title },
-            onItemSelected: onItemSelected
+            onItemSelected: { _ in }
         ) { filteredItems, selectedItem, focusedIndex in
             HStack {
                 ScrollingSelectionList(
                     items: filteredItems,
                     focusedIndex: focusedIndex,
-                    onItemClicked: onItemSelected,
-                    onItemSelected: onItemSelected,
+                    onItemClicked: { _ in },
+                    onItemSelected: { _ in },
                     elem: { item in
                         HStack(spacing: 8) {
                             if let icon = item.icon {
@@ -128,7 +115,6 @@ public class PreferencesExtension: PenguinExtension {
     public let name = "Preferences"
 
     var commands: [Command] = []
-
 
     init() {
         commands = [
