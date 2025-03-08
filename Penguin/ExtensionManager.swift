@@ -10,19 +10,21 @@ public struct Command {
     let shortcutText: String?
     let shortcutName: KeyboardShortcuts.Name
     let action: () -> (any View)?
+    let settingsView: () -> (any View)?
 
     public let extensionId: String
     public let extensionName: String
 
     public init(
+        extensionId: String,
+        extensionName: String,
         title: String,
         subtitle: String? = nil,
         icon: NSImage? = nil,
         shortcutText: String? = nil,
         shortcutName: KeyboardShortcuts.Name,
         action: @escaping () -> (any View)?,
-        extensionId: String,
-        extensionName: String
+        settingsView: @escaping () -> (any View)? = { nil }
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -30,6 +32,7 @@ public struct Command {
         self.shortcutText = shortcutText
         self.shortcutName = shortcutName
         self.action = action
+        self.settingsView = settingsView
         self.extensionId = extensionId
         self.extensionName = extensionName
     }
@@ -41,7 +44,8 @@ public func ShortcutCommand(
     title: String,
     subtitle: String,
     icon: NSImage? = nil,
-    action: @escaping () -> (any View)? = { nil }
+    action: @escaping () -> (any View)? = { nil },
+    settingsView: @escaping () -> (any View)? = { nil }
 ) -> Command {
     let shortcutId = ShortcutManager.generateCommandId(
         extensionId: extIdentifier,
@@ -53,14 +57,15 @@ public func ShortcutCommand(
         ?? ShortcutManager.registerCommandShortcut(
             commandId: shortcutId, name: name)
     return Command(
+        extensionId: extIdentifier,
+        extensionName: extName,
         title: title,
         subtitle: subtitle,
         icon: icon,
         shortcutText: shortcut.shortcutString,
         shortcutName: shortcut,
         action: action,
-        extensionId: extIdentifier,
-        extensionName: extName
+        settingsView: settingsView
     )
 }
 

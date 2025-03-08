@@ -1,6 +1,7 @@
 import AppKit
 import Combine
 import SwiftUI
+import KeyboardShortcuts
 
 extension NSTextField {
     open override var focusRingType: NSFocusRingType {
@@ -9,12 +10,29 @@ extension NSTextField {
     }
 }
 
+// This view will prevent dragging when the user clicks on it.
+struct NonDraggableView<Content: View>: NSViewRepresentable {
+    typealias NSViewType = NSHostingView<Content>
+
+    let content: Content
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    func makeNSView(context: Context) -> NSHostingView<Content> {
+        NSHostingView(rootView: content)
+    }
+
+    func updateNSView(_ nsView: NSHostingView<Content>, context: Context) {
+        nsView.rootView = content
+    }
+}
+
 /// A generic view that provides fuzzy search functionality with keyboard navigation.
 /// It displays a search bar at the top, and the child closure
 /// can define how to layout the bottom portion (e.g. a list, details, etc.).
 struct SearchableView<Item, Content: View>: View {
     @State private var searchText = ""
-    @State private var selectedItem: Item? = nil
     @State private var focusedIndex: Int = 0
     @FocusState private var isSearchFieldFocused: Bool
     @State private var eventMonitor: Any? = nil
@@ -56,12 +74,19 @@ struct SearchableView<Item, Content: View>: View {
     ///   - selectedItem: A binding to the currently selected item.
     ///   - focusedIndex: The index of the item currently focused by keyboard navigation.
     @ViewBuilder let content:
-        (_ filteredItems: [Item], _ selectedItem: Binding<Item?>, _ focusedIndex: Binding<Int>) -> Content
+        (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>) -> Content
 
     /// Returns only the items that pass the fuzzyMatch filter.
     var filteredItems: [Item] {
         guard !searchText.isEmpty else { return items }
         return items.filter { fuzzyMatch(fuzzyMatchKey($0), searchText) }
+    }
+
+    var selectedItem: Item? {
+        if focusedIndex < filteredItems.count {
+            return filteredItems[focusedIndex]
+        }
+        return nil
     }
 
     var body: some View {
@@ -74,57 +99,17 @@ struct SearchableView<Item, Content: View>: View {
                 .focused($isSearchFieldFocused)
                 .onAppear {
                     isSearchFieldFocused = true
-                    // Set up event monitor when view appears
-                    eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [
-                        .leftMouseDown, .rightMouseDown,
-                    ]) { event in
-                        // Small delay to let the click process first
-                        DispatchQueue.main.async {
-                            isSearchFieldFocused = true
-                        }
-                        return event
-                    }
                     focusedIndex = 0
                 }
                 .onDisappear {
-                    // Clean up event monitor when view disappears
-                    if let monitor = eventMonitor {
-                        NSEvent.removeMonitor(monitor)
-                        eventMonitor = nil
-                    }
                     focusedIndex = 0
-                }
-                // Keep focus when window becomes active
-                .onReceive(
-                    NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)
-                ) { _ in
-                    isSearchFieldFocused = true
-                    focusedIndex = 0
-                }
-                // Keep focus when window is activated
-                // .onReceive(
-                //     NotificationCenter.default.publisher(for: NSWindow.didBecomeMainNotification)
-                // ) { _ in
-                //     isSearchFieldFocused = true
-                //     focusedIndex = 0
-                // }
-                .onSubmit {
-                    if !filteredItems.isEmpty && focusedIndex < filteredItems.count {
-                        selectedItem = filteredItems[focusedIndex]
-                    }
                 }
                 .onKeyPress(.upArrow) {
                     focusedIndex = max(0, focusedIndex - 1)
-                    if !filteredItems.isEmpty && focusedIndex < filteredItems.count {
-                        selectedItem = filteredItems[focusedIndex]
-                    }
                     return .handled
                 }
                 .onKeyPress(.downArrow) {
                     focusedIndex = min(filteredItems.count - 1, focusedIndex + 1)
-                    if !filteredItems.isEmpty && focusedIndex < filteredItems.count {
-                        selectedItem = filteredItems[focusedIndex]
-                    }
                     return .handled
                 }
                 .onKeyPress(.return) {
@@ -137,7 +122,7 @@ struct SearchableView<Item, Content: View>: View {
                 }
 
             // Child closure decides how to layout the filtered items and selected item details
-            content(filteredItems, $selectedItem, $focusedIndex)
+            content(filteredItems, selectedItem, $focusedIndex)
         }
         .onChange(of: filteredItems.count) { _, newCount in
             // Reset focused index when the filtered results change
@@ -149,7 +134,6 @@ struct SearchableView<Item, Content: View>: View {
 struct ScrollingSelectionList<Item>: View {
     /// This will get passed in the filtered items, the selected item, and the focused index
     let items: [Item]
-    var selectedItem: Binding<Item?>
     var focusedIndex: Binding<Int>
     var onItemClicked: ((Item) -> Void)?
     var onItemSelected: ((Item) -> Void)?
@@ -182,7 +166,6 @@ struct ScrollingSelectionList<Item>: View {
                     .cornerRadius(5)
                     .id(index)  // Add ID for ScrollViewReader
                     .onTapGesture {
-                        selectedItem.wrappedValue = item
                         focusedIndex.wrappedValue = index
                         isKeyboardNavigation = false
                         onItemClicked?(item)
@@ -193,6 +176,14 @@ struct ScrollingSelectionList<Item>: View {
                             onItemSelected?(item)
                         }
                         lastTapTime = now
+                    }
+                    .onKeyPress(.upArrow) {
+                        focusedIndex.wrappedValue = max(0, focusedIndex.wrappedValue - 1)
+                        return .ignored
+                    }
+                    .onKeyPress(.downArrow) {
+                        focusedIndex.wrappedValue = min(items.count - 1, focusedIndex.wrappedValue + 1)
+                        return .ignored
                     }
                     .onHover { hovering in
                         hoveredIndex = hovering ? index : nil
@@ -212,113 +203,3 @@ struct ScrollingSelectionList<Item>: View {
         .frame(maxWidth: .infinity)
     }
 }
-
-/// An example usage of `SearchableView` that displays a list of fruits with keyboard navigation
-struct ContentViewSimple: View {
-    let items = [
-        "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
-        "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
-    ]
-
-    func onItemSelected(_ item: String) {
-        print("got item: \(item)")
-    }
-
-    var body: some View {
-        SearchableView(
-            items: items,
-            fuzzyMatchKey: { item in item },
-            onItemSelected: onItemSelected
-        ) { filteredItems, selectedItem, focusedIndex in
-            ScrollingSelectionList(
-                items: filteredItems,
-                selectedItem: selectedItem,
-                focusedIndex: focusedIndex,
-                onItemClicked: { _ in },
-                onItemSelected: onItemSelected,
-                elem: { item in Text(item) })
-        }
-    }
-}
-
-struct GlobalSearchView: View {
-    let items: [Command]
-    let onItemSelected: (Command) -> Void
-
-    var body: some View {
-        SearchableView(
-            items: items,
-            fuzzyMatchKey: { item in item.title },
-            onItemSelected: onItemSelected
-        ) { filteredItems, selectedItem, focusedIndex in
-            ScrollingSelectionList(
-                items: filteredItems,
-                selectedItem: selectedItem,
-                focusedIndex: focusedIndex,
-                onItemClicked: onItemSelected,
-                onItemSelected: onItemSelected,
-                elem: { item in Text(item.title) })
-        }
-    }
-}
-
-/// An example usage of `SearchableView` that displays a list of fruits on the left
-/// and a details section on the right when an item is selected.
-struct ContentView: View {
-    let items = [
-        "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
-        "Apple", "Banana", "Orange", "Grapes", "Peach", "Strawberry", "Blueberry", "Pineapple",
-    ]
-
-    func onItemSelected(_ item: String) {
-        print("selected item: \(item)")
-    }
-
-    var body: some View {
-        SearchableView(
-            items: items,
-            fuzzyMatchKey: { item in item },
-            onItemSelected: onItemSelected
-        ) { filteredItems, selectedItem, focusedIndex in
-            HStack {
-                ScrollingSelectionList(
-                    items: filteredItems,
-                    selectedItem: selectedItem,
-                    focusedIndex: focusedIndex,
-                    onItemClicked: { _ in },
-                    onItemSelected: onItemSelected,
-                    elem: { item in
-                        HStack(spacing: 8) {
-                            Text(item)
-                                .lineLimit(1)
-                                .truncationMode(.tail)
-                            Spacer()
-                            Text("Shortcut not set")
-                                .foregroundColor(.gray)
-                        }
-                    })
-
-                Divider()
-
-                // Right side: Details for the selected item
-                VStack {
-                    if let current = selectedItem.wrappedValue {
-                        Text("Details for \(current)")
-                            .font(.headline)
-                            .padding()
-                    } else {
-                        Text("Select an item for details")
-                            .foregroundColor(.gray)
-                    }
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-    }
-}
-
-#Preview {
-    //    ContentViewSimple()
-    ContentView()
-}  //}

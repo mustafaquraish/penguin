@@ -2,30 +2,42 @@ import AppKit
 import KeyboardShortcuts
 import SwiftUI
 
+class OverlayPanel: NSPanel {
+    override var canBecomeKey: Bool { return true }
+}
+
 @main
 class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    var window: NSWindow?
+    public static let shared = Penguin()
+    public var previousActiveApp: NSRunningApplication?
+
+    var window: OverlayPanel?
     var extensionManager: ExtensionManager = ExtensionManager.shared
+
     private var preferencesWindowController: NSWindowController?
-
     private var statusItem: NSStatusItem!
-
-    // Add property to store the previously active app
-    private var previousActiveApp: NSRunningApplication?
+    private var settingsCommand: Command?
 
     // TODO: Have a view-stack and allow using esc to go back to the previous view
     //       (but only if we selected an item from the search results, not a hotkey)
 
     static func main() {
         let app = NSApplication.shared
-        let delegate = Penguin()
+        let delegate = Penguin.shared
         app.delegate = delegate
         app.run()
     }
 
     func runCommand(command: Command) {
+        print("Running command: \(command.title)")
         if let view = command.action() {
             setWindowView(view: view)
+            if window?.isVisible == false {
+                showMainWindow()
+            }
+        // If we have run the command, hide the main window
+        } else {
+            hideMainWindow()
         }
     }
 
@@ -48,7 +60,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.hideMainWindow()
                 return .handled
             }
-            .padding(.top, -25)  // Negative padding to remove the gap
 
         let hostingView = NSHostingView(rootView: AnyView(contentView))
         hostingView.autoresizingMask = [.width, .height]
@@ -57,28 +68,31 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     func setupMainWindow(commands: [Command]) {
         // Create the window and set the content view
-        window = NSWindow(
+
+        // FIXME: We can't paste anything into the search bar because the window is non-activating.
+        //       We need to find some other way to make the window non-activating, while also retaining
+        //       the ability for previous app to keep it's focus on text fields.
+        window = OverlayPanel(
             contentRect: NSRect(x: 0, y: 0, width: 900, height: 500),
-            styleMask: [.titled, .fullSizeContentView],
+            styleMask: [.nonactivatingPanel, .hudWindow],
             backing: .buffered,
             defer: false
         )
         guard let window = window else { return }
         window.delegate = self
 
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
+        _ = GlobalSearchController(window: window)
+
+        window.center()
         window.setIsVisible(false)
-        window.standardWindowButton(.closeButton)?.isHidden = true
-        window.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        window.standardWindowButton(.zoomButton)?.isHidden = true
         window.backgroundColor = NSColor(white: 0.1, alpha: 0.9)
         window.hasShadow = true
-        window.isMovableByWindowBackground = true
-        window.center()
         window.setFrameAutosaveName("Penguin 🐧")
         window.isReleasedWhenClosed = false
-        window.level = .floating
+
+        window.isFloatingPanel = true
+        window.becomesKeyOnlyIfNeeded = true
+        window.level = .popUpMenu // Keeps it above normal windows without taking focus
 
         // Create the NSHostingView to hold our SwiftUI contentView
         setWindowView(
@@ -98,9 +112,16 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         setupStatusItem()
 
         // TODO: It is annoying to manually specify these... find some way to auto-register them.
-        extensionManager.registerExtension(FruitExtension())
-        extensionManager.registerExtension(TwoPanelExtension())
-        extensionManager.registerExtension(NavigationPanelExtension())
+        // extensionManager.registerExtension(FruitExtension())
+        // extensionManager.registerExtension(TwoPanelExtension())
+        // extensionManager.registerExtension(NavigationPanelExtension())
+        extensionManager.registerExtension(WindowExtension())
+        extensionManager.registerExtension(ClipboardExtension())
+
+        let settingsExtension = SettingsExtension()
+        extensionManager.registerExtension(settingsExtension)
+        assert(settingsExtension.getCommands().count == 1)
+        settingsCommand = settingsExtension.getCommands()[0]
 
         print("Fetching commands")
         // TODO: This is blocking the app from launching. Ideally, we should launch some background
@@ -127,7 +148,9 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Local monitoring for cmd+, to open preferences
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "," {
-                self.openPreferences()
+                if let settingsCommand = self.settingsCommand {
+                    self.runCommand(command: settingsCommand)
+                }
                 return nil
             }
             return event
@@ -135,15 +158,9 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         // Register shortcuts for all commands dynamically
         for command in commands {
-            let commandId = ShortcutManager.generateCommandId(
-                extensionId: command.extensionId,
-                commandTitle: command.title
-            )
-            let shortcutName =
-                ShortcutManager.getShortcutFor(commandId: commandId)
-                ?? ShortcutManager.registerCommandShortcut(
-                    commandId: commandId, name: command.title)
-            print("Registered shortcut for command '\(command.title)': \(shortcutName)")
+            KeyboardShortcuts.onKeyUp(for: command.shortcutName) { [weak self] in
+                self?.runCommand(command: command)
+            }
         }
     }
 
@@ -172,7 +189,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
             NSMenuItem(title: "Search", action: #selector(toggleSearchBar), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
-            NSMenuItem(title: "Preferences", action: #selector(openPreferences), keyEquivalent: ",")
+            NSMenuItem(title: "Settings", action: #selector(openPreferences), keyEquivalent: ",")
         )
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
@@ -183,7 +200,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     // New centralized method for hiding the window
-    private func hideMainWindow() {
+    public func hideMainWindow() {
         window?.setIsVisible(false)
         // Restore focus to the previous app if we have one
         if let previousApp = previousActiveApp {
@@ -199,7 +216,9 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         print("Previous active app: \(previousActiveApp?.localizedName ?? "None")")
 
         window?.setIsVisible(true)
-        NSApp.activate(ignoringOtherApps: true)
+        window?.orderFrontRegardless()
+        window?.makeKeyAndOrderFront(nil)
+        // NSApp.activate(ignoringOtherApps: true)
     }
 
     @objc private func toggleSearchBar() {
@@ -212,6 +231,12 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc private func openPreferences() {
+        if let settingsCommand = settingsCommand {
+            runCommand(command: settingsCommand)
+        }
+    }
+
+    @objc private func openPreferencesWindowOld() {
         // If preferences window exists, just bring it to front
         if let controller = preferencesWindowController {
             controller.showWindow(nil)

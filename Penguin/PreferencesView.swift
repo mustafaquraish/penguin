@@ -1,6 +1,8 @@
 import KeyboardShortcuts
 import SwiftUI
 
+/// This is DEPRECATED. Settings are now handled in the SettingsExtension.
+
 struct PreferencesView: View {
     var body: some View {
         TabView {
@@ -80,7 +82,6 @@ struct ShortcutsPreferencesView2: View {
         ) { filteredItems, selectedItem, focusedIndex in
             ScrollingSelectionList(
                 items: filteredItems,
-                selectedItem: selectedItem,
                 focusedIndex: focusedIndex,
                 onItemClicked: { _ in },
                 onItemSelected: onItemSelected,
@@ -100,42 +101,34 @@ struct ShortcutsPreferencesView2: View {
 struct ShortcutsPreferencesView: View {
     let commands: [Command] = ExtensionManager.shared.getAllCommands()
     @State private var searchText: String = ""
-    private func onItemSelected(item: Command) {
-        print("got item: \(item)")
-        let windowController = ShortcutWindowController(shortcutName: item.shortcutName)
-        windowController.showWindow(nil)
-    }
+    @FocusState private var isSearchFocused: Bool
 
     private var filteredCommands: [Command] {
+        print("searchText: '\(searchText)'")
+        print("commands: \(commands)")
         if searchText.isEmpty {
             return commands
         } else {
-            return commands.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+            return commands.filter { cmd in
+                cmd.title.localizedCaseInsensitiveContains(searchText)
+            }
         }
     }
-    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         VStack {
             // Search field above everything, clearly separated
-            TextField("Search", text: $searchText)
+            TextField("", text: $searchText, prompt: Text("Search"))
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-            
+
             Divider()
-            
-            ScrollView {
-                LazyVStack(alignment: .leading) {
-                    ForEach(commands.filter { command in
-                        searchText.isEmpty || command.title.localizedCaseInsensitiveContains(searchText)
-                    }, id: \.shortcutName) { command in
-                        HStack {
-                            Text(command.title)
-                            Spacer()
-                            KeyboardShortcuts.Recorder(for: command.shortcutName)
-                        }
-                        .padding(.horizontal)
-                    }
+
+            List(filteredCommands, id: \.shortcutName) { command in
+                HStack {
+                    Text(command.title)
+                    Spacer()
+                    KeyboardShortcuts.Recorder(for: command.shortcutName)
                 }
             }
         }
