@@ -7,8 +7,18 @@ class OverlayPanel: NSPanel {
 }
 
 @main
+struct StealthApp: App {
+    @NSApplicationDelegateAdaptor(Penguin.self) var appDelegate
+    
+    var body: some Scene {
+        Settings {
+            EmptyView()
+        }
+    }
+}
+
 class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
-    public static let shared = Penguin()
+    public static var shared: Penguin = Penguin()
     public static var penguinIcon: NSImage?
     public var previousActiveApp: NSRunningApplication?
 
@@ -21,13 +31,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // TODO: Have a view-stack and allow using esc to go back to the previous view
     //       (but only if we selected an item from the search results, not a hotkey)
-
-    static func main() {
-        let app = NSApplication.shared
-        let delegate = Penguin.shared
-        app.delegate = delegate
-        app.run()
-    }
 
     func runCommand(command: Command) {
         print("Running command: \(command.title)")
@@ -84,7 +87,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         window.center()
         window.setIsVisible(false)
-        window.backgroundColor = NSColor(white: 0.1, alpha: 0.9)
+        window.backgroundColor = NSColor(white: 0.1, alpha: 0.99)
         window.hasShadow = true
         window.setFrameAutosaveName("Penguin 🐧")
         window.isReleasedWhenClosed = false
@@ -105,8 +108,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        previousActiveApp = NSWorkspace.shared.frontmostApplication
-
+        Penguin.shared = self
         setupStatusItem()
 
         // TODO: It is annoying to manually specify these... find some way to auto-register them.
@@ -236,34 +238,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let settingsCommand = settingsCommand {
             runCommand(command: settingsCommand)
         }
-    }
-
-    @objc private func openPreferencesWindowOld() {
-        // If preferences window exists, just bring it to front
-        // if let controller = preferencesWindowController {
-        //     controller.showWindow(nil)
-        //     controller.window?.makeKeyAndOrderFront(nil)
-        //     NSApp.activate(ignoringOtherApps: true)
-        //     return
-        // }
-
-        // // Otherwise create a new window
-        // let preferencesWindow = NSWindow(
-        //     contentRect: NSRect(x: 0, y: 0, width: 500, height: 300),
-        //     styleMask: [.titled, .closable],
-        //     backing: .buffered,
-        //     defer: false
-        // )
-        // // Create and store the window controller
-        // preferencesWindowController = PreferencesWindowController(
-        //     window: preferencesWindow,
-        //     previousActiveApp: previousActiveApp
-        // )
-        // preferencesWindowController?.showWindow(nil)
-
-        // // Bring preferences window to front
-        // NSApp.activate(ignoringOtherApps: true)
-        // preferencesWindow.makeKeyAndOrderFront(nil)
     }
 
     // Update window delegate method

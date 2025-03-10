@@ -1,4 +1,35 @@
 import Cocoa
+import SwiftUI
+
+struct WindowManagerSharedSettings {
+    @UserDefault<Float>(key: "windowmanager.almostMaximizePct", defaultValue: 80.0)
+    public static var almostMaximizePct: Float
+}
+
+
+struct AlmostMaximizeSettingsView: View {
+    @State private var almostMaximizePct: Float = WindowManagerSharedSettings.almostMaximizePct
+
+    let numberFormatter: NumberFormatter = {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 3
+        return formatter
+    }()
+
+    var body: some View {
+        Form {
+            Labelled(label: "Percentage") {
+                TextField("", value: $almostMaximizePct, formatter: numberFormatter)
+                    .frame(maxWidth: 100)
+                    .onChange(of: almostMaximizePct) { _, newValue in
+                        WindowManagerSharedSettings.almostMaximizePct = newValue
+                    }
+            }
+        }
+    }
+}
 
 public class WindowExtension: PenguinExtension {
     public let identifier = "com.penguin.window"
@@ -69,8 +100,13 @@ public class WindowExtension: PenguinExtension {
                     systemSymbolName: "rectangle",
                     accessibilityDescription: "Almost maximize"),
                 action: {
-                    self.wm.almostMaximizeActiveWindow(pct: 0.8)
+                    self.wm.almostMaximizeActiveWindow(
+                        pct: WindowManagerSharedSettings.almostMaximizePct
+                    )
                     return nil
+                },
+                settingsView: {
+                    AlmostMaximizeSettingsView()
                 }
             ),
         ]

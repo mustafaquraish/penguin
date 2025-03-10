@@ -131,6 +131,7 @@ public class WindowManager {
     }
 
     /// Moves the currently active application window to the next display
+    /// and maximizes it on that display
     public func cycleActiveWindowAcrossDisplays() {
         // From Claude 3.7... blame it if it doesn't work.
 
@@ -178,14 +179,31 @@ public class WindowManager {
         AXValueGetValue(positionValue, .cgPoint, &windowPos)
         AXValueGetValue(sizeValue, .cgSize, &windowSize)
 
-        // Find the current screen index
-        let windowCenter = CGPoint(x: windowPos.x + windowSize.width/2, y: windowPos.y + windowSize.height/2)
+        print("Window position: \(windowPos)")
+        print("Window size: \(windowSize)")
+
+        // Simple screen detection: find which screen the top-left of the window is on
         var currentScreenIndex = -1
+        var closestDistance = CGFloat.greatestFiniteMagnitude
 
         for (index, screen) in screens.enumerated() {
-            if NSPointInRect(windowCenter, screen.frame) {
+            print("Checking screen: \(index) with frame: \(screen.frame)")
+
+            // Calculate distance from window top-left to screen origin
+            let xDistance = abs(windowPos.x - screen.frame.minX)
+            let yDistance = abs(windowPos.y - screen.frame.minY)
+            let distance = sqrt(xDistance * xDistance + yDistance * yDistance)
+
+            // If window top-left matches exactly with screen origin, we've found our screen
+            if windowPos.x == screen.frame.minX && windowPos.y == screen.frame.minY {
                 currentScreenIndex = index
                 break
+            }
+
+            // Otherwise, track closest screen by coordinate distance
+            if distance < closestDistance {
+                closestDistance = distance
+                currentScreenIndex = index
             }
         }
 
@@ -194,32 +212,18 @@ public class WindowManager {
             return
         }
 
+        print("Window is on screen \(currentScreenIndex) (detection by closest screen origin)")
+
         // Calculate the next screen index (cycle back to first screen if needed)
         let nextScreenIndex = (currentScreenIndex + 1) % screens.count
         let nextScreen = screens[nextScreenIndex]
 
-        // Calculate relative position on new screen
-        let currentScreen = screens[currentScreenIndex]
-
-        // Calculate position ratios (0.0 to 1.0) relative to current screen's visible frame
-        let currentVisibleFrame = currentScreen.visibleFrame
-        let relativeX = (windowPos.x - currentVisibleFrame.minX) / currentVisibleFrame.width
-        let relativeY = (windowPos.y - currentVisibleFrame.minY) / currentVisibleFrame.height
-        let relativeWidth = windowSize.width / currentVisibleFrame.width
-        let relativeHeight = windowSize.height / currentVisibleFrame.height
-
-        // Apply these ratios to the new screen
+        // Get the next screen's visible frame (accounting for menu bar, dock, etc.)
         let nextVisibleFrame = nextScreen.visibleFrame
-        let newFrame = NSRect(
-            x: nextVisibleFrame.minX + (relativeX * nextVisibleFrame.width),
-            y: nextVisibleFrame.minY + (relativeY * nextVisibleFrame.height),
-            width: relativeWidth * nextVisibleFrame.width,
-            height: relativeHeight * nextVisibleFrame.height
-        )
 
-        // Move window to new screen
-        setWindowFrame(window, to: newFrame)
-        print("Window moved to screen \(nextScreenIndex + 1) of \(screens.count)")
+        // Move window to next screen and maximize it
+        setWindowFrame(window, to: nextVisibleFrame)
+        print("Window moved to screen \(nextScreenIndex + 1) of \(screens.count) and maximized")
     }
     // MARK: - Private Helpers
 
