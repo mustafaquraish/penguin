@@ -114,14 +114,20 @@ public class WindowManager {
             return
         }
 
-        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect.zero
+        let pct = pct * 0.01 // Convert percentage to fraction
+        let screenFrame = NSScreen.main?.frame ?? NSRect.zero
 
         let newFrameWidth = screenFrame.width * CGFloat(pct)
         let newFrameHeight = screenFrame.height * CGFloat(pct)
 
+        let screenMid = CGPoint(
+            x: screenFrame.origin.x + screenFrame.width / 2,
+            y: screenFrame.origin.y + screenFrame.height / 2
+        )
+
         let newFrame = NSRect(
-            x: screenFrame.origin.x + (screenFrame.width - newFrameWidth) / 2,
-            y: screenFrame.origin.y + (screenFrame.height - newFrameHeight) / 2,
+            x: screenMid.x - newFrameWidth / 2,
+            y: screenMid.y - newFrameHeight / 2,
             width: newFrameWidth,
             height: newFrameHeight
         )

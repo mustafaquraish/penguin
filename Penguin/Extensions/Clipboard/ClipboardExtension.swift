@@ -123,9 +123,7 @@ public class ClipboardExtension: PenguinExtension {
 
     init() {
         commands = [
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: "Clipboard Manager",
                 subtitle: "Open clipboard manager",
                 icon: NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: "Clipboard"),

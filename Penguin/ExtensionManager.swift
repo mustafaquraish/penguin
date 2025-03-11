@@ -4,74 +4,40 @@ import KeyboardShortcuts
 import SwiftUI
 
 public struct Command: Identifiable {
-    // TODO: ID should be something like "com.penguin.extension.command_title"
-    //       so we can uniquely use it to relate for eg: shortcuts or last access times.
-    //       This is some mix of the extension name and the title. Some relevant code
-    //       is in `ShortcutManager.generateCommandId`.
-    public let id = UUID()
+    public let id: String
     let title: String
     let subtitle: String?
     let icon: NSImage?
-    let shortcutText: String?
     let shortcutName: KeyboardShortcuts.Name
     let action: () -> (any View)?
     let settingsView: () -> (any View)?
 
-    public let extensionId: String
-    public let extensionName: String
-
     public init(
-        extensionId: String,
-        extensionName: String,
+        id: String,
         title: String,
         subtitle: String? = nil,
         icon: NSImage? = nil,
-        shortcutText: String? = nil,
-        shortcutName: KeyboardShortcuts.Name,
         action: @escaping () -> (any View)?,
         settingsView: @escaping () -> (any View)? = { nil }
     ) {
+        self.id = id
         self.title = title
         self.subtitle = subtitle
         self.icon = icon
-        self.shortcutText = shortcutText
-        self.shortcutName = shortcutName
+        self.shortcutName = KeyboardShortcuts.Name(id)
         self.action = action
         self.settingsView = settingsView
-        self.extensionId = extensionId
-        self.extensionName = extensionName
     }
 }
 
-public func ShortcutCommand(
-    extName: String,
-    extIdentifier: String,
-    title: String,
-    subtitle: String,
-    icon: NSImage? = nil,
-    action: @escaping () -> (any View)? = { nil },
-    settingsView: @escaping () -> (any View)? = { nil }
-) -> Command {
-    let shortcutId = ShortcutManager.generateCommandId(
-        extensionId: extIdentifier,
-        commandTitle: title
-    )
-    let name = "\(extName): \(title)"
-    let shortcut =
-        ShortcutManager.getShortcutFor(commandId: shortcutId)
-        ?? ShortcutManager.registerCommandShortcut(
-            commandId: shortcutId, name: name)
-    return Command(
-        extensionId: extIdentifier,
-        extensionName: extName,
-        title: title,
-        subtitle: subtitle,
-        icon: icon,
-        shortcutText: shortcut.shortcutString,
-        shortcutName: shortcut,
-        action: action,
-        settingsView: settingsView
-    )
+func generateCommandId(extensionId: String, commandTitle: String) -> String {
+    let sanitizedTitle =
+        commandTitle
+        .lowercased()
+        .replacingOccurrences(of: ":", with: "")
+        .replacingOccurrences(of: " ", with: "_")
+        .replacingOccurrences(of: ".", with: "_")
+    return "\(extensionId).\(sanitizedTitle)"
 }
 
 /// Protocol for extensions to implement
@@ -86,6 +52,27 @@ public protocol PenguinExtension {
 extension PenguinExtension {
     public func getSettingsView() -> (any View)? {
         nil
+    }
+
+    public func makeCommand(
+        title: String,
+        subtitle: String,
+        icon: NSImage? = nil,
+        action: @escaping () -> (any View)? = { nil },
+        settingsView: @escaping () -> (any View)? = { nil }
+    ) -> Command {
+        let shortcutId = generateCommandId(
+            extensionId: identifier,
+            commandTitle: title
+        )
+        return Command(
+            id: shortcutId,
+            title: title,
+            subtitle: subtitle,
+            icon: icon,
+            action: action,
+            settingsView: settingsView
+        )
     }
 }
 
@@ -127,15 +114,3 @@ struct RegisterExtension {
     }
 }
 // MARK: - Helper Extensions
-
-// extension NSRunningApplication {
-//   var icon: NSImage? {
-//     return NSWorkspace.shared.icon(forFile: bundleURL?.path ?? "")
-//   }
-// }
-
-// extension KeyboardShortcuts.Name {
-//   var shortcutString: String? {
-//     KeyboardShortcuts.getShortcut(for: self)?.description
-//   }
-// }

@@ -9,7 +9,7 @@ class OverlayPanel: NSPanel {
 @main
 struct StealthApp: App {
     @NSApplicationDelegateAdaptor(Penguin.self) var appDelegate
-    
+
     var body: some Scene {
         Settings {
             EmptyView()
@@ -250,3 +250,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 }
 
+extension KeyboardShortcuts.Name {
+    static let togglePenguinWindow = KeyboardShortcuts.Name("com.penguin.toggle")
+}

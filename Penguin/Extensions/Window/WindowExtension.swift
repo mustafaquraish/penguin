@@ -41,9 +41,7 @@ public class WindowExtension: PenguinExtension {
 
     init() {
         commands = [
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: "Window: Left Half",
                 subtitle: "Move window to left half of screen",
                 icon: NSImage(
@@ -54,9 +52,7 @@ public class WindowExtension: PenguinExtension {
                     return nil
                 }
             ),
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: "Window: Right Half",
                 subtitle: "Move window to right half of screen",
                 icon: NSImage(
@@ -67,9 +63,7 @@ public class WindowExtension: PenguinExtension {
                     return nil
                 }
             ),
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: "Window: Next Display",
                 subtitle: "Move window to next display",
                 icon: NSImage(systemSymbolName: "arrow.right.arrow.left", accessibilityDescription: "Next display"), 
@@ -78,9 +72,7 @@ public class WindowExtension: PenguinExtension {
                     return nil
                 }
             ),
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: "Window: Maximize",
                 subtitle: "Maximize window",
                 icon: NSImage(
@@ -91,9 +83,7 @@ public class WindowExtension: PenguinExtension {
                     return nil
                 }
             ),
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: "Window: Almost Maximize",
                 subtitle: "Almost maximize window (80% of screen)",
                 icon: NSImage(

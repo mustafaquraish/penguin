@@ -4,12 +4,10 @@ import SwiftUI
 
 struct PreferencesView: View {
     private static var dummyApplicationSettingsCommand: Command = Command(
-        extensionId: "com.penguin",
-        extensionName: "Penguin",
+        id: KeyboardShortcuts.Name.togglePenguinWindow.rawValue,
         title: "Penguin",
         subtitle: "General Preferences",
         icon: Penguin.penguinIcon,
-        shortcutName: .togglePenguinWindow,
         action: { nil },  // This command is not used, it's just a placeholder
         settingsView: { GeneralPenguinPreferencesView() }
     )
@@ -17,7 +15,7 @@ struct PreferencesView: View {
     var items: [Command] {
         return [PreferencesView.dummyApplicationSettingsCommand]
             + ExtensionManager.shared.getAllCommands().filter {
-                $0.shortcutName != .penguinSettings
+                $0.id != PreferencesExtension.commandId
             }
     }
 
@@ -81,7 +79,7 @@ struct PreferencesView: View {
                             Spacer()
                             Divider()
                             Text(
-                                "Extension: \(selectedItem.extensionName) (\(selectedItem.extensionId))"
+                                "Command ID: \(selectedItem.id)"
                             )
                             .font(.subheadline)
                             .foregroundColor(.gray)
@@ -106,25 +104,20 @@ struct GeneralPenguinPreferencesView: View {
     }
 }
 
-extension KeyboardShortcuts.Name {
-    static let penguinSettings = KeyboardShortcuts.Name("com.penguin.settings")
-}
-
 public class PreferencesExtension: PenguinExtension {
     public let identifier = "com.penguin.preferences"
     public let name = "Preferences"
+    static public let commandId = "com.penguin.preferences.command"
 
     var commands: [Command] = []
 
     init() {
         commands = [
             Command(
-                extensionId: identifier,
-                extensionName: name,
+                id: PreferencesExtension.commandId,
                 title: "Preferences",
                 subtitle: "Open preferences",
                 icon: Penguin.penguinIcon,
-                shortcutName: .penguinSettings,
                 action: {
                     PreferencesView()
                 }

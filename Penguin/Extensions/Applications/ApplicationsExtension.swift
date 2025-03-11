@@ -8,9 +8,7 @@ public class ApplicationsExtension: PenguinExtension {
 
     public func getCommands() -> [Command] {
         am.getApplications().map { app in
-            ShortcutCommand(
-                extName: name,
-                extIdentifier: identifier,
+            makeCommand(
                 title: app.name,
                 subtitle: app.url.path,
                 icon: app.icon,
