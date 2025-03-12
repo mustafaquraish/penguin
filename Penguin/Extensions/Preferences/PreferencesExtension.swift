@@ -1,5 +1,6 @@
 import Cocoa
 import KeyboardShortcuts
+import LaunchAtLogin
 import SwiftUI
 
 struct PreferencesView: View {
@@ -98,8 +99,7 @@ struct PreferencesView: View {
 struct GeneralPenguinPreferencesView: View {
     var body: some View {
         VStack {
-            Text("No additional settings (yet)")
-            Text("Change the Penguin hotkey on the left")
+            LaunchAtLogin.Toggle("Launch at login")
         }
     }
 }

@@ -29,6 +29,8 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem!
     private var settingsCommand: Command?
 
+    private var viewStack: [NSView] = []
+
     // TODO: Have a view-stack and allow using esc to go back to the previous view
     //       (but only if we selected an item from the search results, not a hotkey)
 
@@ -56,15 +58,11 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if let contentView = window?.contentView {
             contentView.removeFromSuperview()
         }
-        let contentView =
-            view
-            .onKeyPress(.escape) {
-                self.hideMainWindow()
-                return .handled
-            }
 
-        let hostingView = NSHostingView(rootView: AnyView(contentView))
+        let hostingView = NSHostingView(rootView: AnyView(view))
         hostingView.autoresizingMask = [.width, .height]
+
+        viewStack.append(hostingView)
         window?.contentView = hostingView
     }
 
@@ -95,12 +93,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.isFloatingPanel = true
         window.becomesKeyOnlyIfNeeded = true
         window.level = .popUpMenu // Keeps it above normal windows without taking focus
-
-        // Create the NSHostingView to hold our SwiftUI contentView
-        setWindowView(
-            view: GlobalSearchView(
-                onItemSelected: runCommand
-            ))
 
         // Critical for focus: Activate the app
         NSApp.setActivationPolicy(.accessory)  // Use .accessory for menu bar apps
@@ -205,6 +197,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     // New centralized method for hiding the window
     public func hideMainWindow() {
+        viewStack = []
         window?.setIsVisible(false)
         // Restore focus to the previous app if we have one
         if let previousApp = previousActiveApp {
@@ -240,9 +233,13 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    // Update window delegate method
-    func windowDidResignKey(_ notification: Notification) {
-        hideMainWindow()
+    @objc func cancel(_ sender: Any?) {
+        _ = viewStack.popLast()
+        if viewStack.count > 0 {
+            window?.contentView = viewStack.last
+        } else {
+            hideMainWindow()
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

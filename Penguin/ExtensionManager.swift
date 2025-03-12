@@ -103,14 +103,4 @@ public class ExtensionManager {
     }
 }
 
-// Create a decorator i can use on an extension to automatically register it with the extension manager
-@propertyWrapper
-struct RegisterExtension {
-    let wrappedValue: PenguinExtension
-
-    init(wrappedValue: PenguinExtension) {
-        self.wrappedValue = wrappedValue
-        ExtensionManager.shared.registerExtension(wrappedValue)
-    }
-}
 // MARK: - Helper Extensions

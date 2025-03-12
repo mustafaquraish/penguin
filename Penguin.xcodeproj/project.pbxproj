@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		459901112D7B9E12009A0F46 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 459901102D7B9E12009A0F46 /* KeyboardShortcuts */; };
+		45C65B132D7FE2FB00CD1255 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 45C65B122D7FE2FB00CD1255 /* LaunchAtLogin */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				45C65B132D7FE2FB00CD1255 /* LaunchAtLogin in Frameworks */,
 				459901112D7B9E12009A0F46 /* KeyboardShortcuts in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,6 +120,7 @@
 			name = Penguin;
 			packageProductDependencies = (
 				459901102D7B9E12009A0F46 /* KeyboardShortcuts */,
+				45C65B122D7FE2FB00CD1255 /* LaunchAtLogin */,
 			);
 			productName = Penguin;
 			productReference = 453FF2C32D7A8CA600DE7CFA /* Penguin.app */;
@@ -204,6 +207,7 @@
 			packageReferences = (
 				45311F802D7ADBA7002B1257 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				45311F812D7ADC21002B1257 /* XCRemoteSwiftPackageReference "HotKey" */,
+				45C65B112D7FE2FB00CD1255 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 453FF2C42D7A8CA600DE7CFA /* Products */;
@@ -573,6 +577,14 @@
 				kind = branch;
 			};
 		};
+		45C65B112D7FE2FB00CD1255 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -580,6 +592,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 45311F802D7ADBA7002B1257 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
 			productName = KeyboardShortcuts;
+		};
+		45C65B122D7FE2FB00CD1255 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 45C65B112D7FE2FB00CD1255 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			productName = LaunchAtLogin;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
