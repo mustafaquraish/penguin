@@ -101,6 +101,10 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // Critical for focus: Activate the app
         NSApp.setActivationPolicy(.accessory)  // Use .accessory for menu bar apps
         NSApp.activate(ignoringOtherApps: true)
+
+        // Show by default
+        setDefaultView()
+        showMainWindow()
     }
 
     func setupPenguinIcons() {
@@ -150,6 +154,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         assert(settingsCommand?.title == "Preferences")
 
         extensionManager.registerExtension(SystemPreferencePanesExtension())
+        extensionManager.registerExtension(ConfettiExtension())
 
         // TODO: Currently command ordering is defined by the order of registration.
         //       We need each command to track the last time it was invoked and sort by that.
