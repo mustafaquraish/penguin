@@ -68,7 +68,7 @@ struct GlobalSearchView: View {
     }
 
     var body: some View {
-        SearchableView(
+        FuzzySearchableView(
             items: items,
             fuzzyMatchKey: { item in item.title },
             onItemSelected: handleItemSelected
@@ -108,6 +108,7 @@ struct GlobalSearchView: View {
         }
     }
 }
+
 
 class GlobalSearchController: NSWindowController {
     override func windowDidLoad() {

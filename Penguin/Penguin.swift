@@ -19,17 +19,19 @@ struct StealthApp: App {
 
 class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     public static var shared: Penguin = Penguin()
-    public static var penguinIcon: NSImage?
+    public static var penguinIcon_20: NSImage?
+    public static var penguinIcon_64: NSImage?
     public var previousActiveApp: NSRunningApplication?
 
     var window: OverlayPanel?
     var extensionManager: ExtensionManager = ExtensionManager.shared
+    private var clipboardManager =  ClipboardManager.shared
 
     private var preferencesWindowController: NSWindowController?
     private var statusItem: NSStatusItem!
     private var settingsCommand: Command?
 
-    private var viewStack: [NSView] = []
+    private var viewStack: [() -> (any View)?] = []
 
     // TODO: Have a view-stack and allow using esc to go back to the previous view
     //       (but only if we selected an item from the search results, not a hotkey)
@@ -37,6 +39,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func runCommand(command: Command) {
         print("Running command: \(command.title)")
         if let view = command.action() {
+            viewStack.append(command.action)
             setWindowView(view: view)
             if window?.isVisible == false {
                 showMainWindow()
@@ -48,6 +51,8 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func setDefaultView() {
+        let viewFunc: () -> (any View)? = { GlobalSearchView(onItemSelected: self.runCommand) }
+        viewStack.append(viewFunc)
         setWindowView(
             view: GlobalSearchView(
                 onItemSelected: runCommand
@@ -59,10 +64,9 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
             contentView.removeFromSuperview()
         }
 
-        let hostingView = NSHostingView(rootView: AnyView(view))
+        let contentView = view
+        let hostingView = NSHostingView(rootView: AnyView(contentView))
         hostingView.autoresizingMask = [.width, .height]
-
-        viewStack.append(hostingView)
         window?.contentView = hostingView
     }
 
@@ -87,7 +91,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         window.setIsVisible(false)
         window.backgroundColor = NSColor(white: 0.1, alpha: 0.99)
         window.hasShadow = true
-        window.setFrameAutosaveName("Penguin 🐧")
+        window.setFrameAutosaveName("Penguin")
         window.isReleasedWhenClosed = false
 
         window.isFloatingPanel = true
@@ -99,18 +103,53 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    func setupPenguinIcons() {
+        Penguin.penguinIcon_64 = NSImage(named: "penguin_64")
+        if Penguin.penguinIcon_64 == nil {
+            // Use penguin emoji as a fallback
+            let penguinEmoji = "🐧"
+            let penguinImage = NSImage(
+                size: NSSize(width: 64, height: 64),
+                flipped: false,
+                drawingHandler: { (rect) in
+                    penguinEmoji.draw(in: rect)
+                    return true
+                }
+            )
+            penguinImage.lockFocus()
+            Penguin.penguinIcon_64 = penguinImage
+        }
+        if Penguin.penguinIcon_20 == nil {
+            let penguinImage = NSImage(
+                size: NSSize(width: 20, height: 20),
+                flipped: false,
+                drawingHandler: { (rect) in
+                    Penguin.penguinIcon_64?.draw(in: rect)
+                    return true
+                }
+            )
+            penguinImage.lockFocus()
+            Penguin.penguinIcon_20 = penguinImage
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         Penguin.shared = self
+        setupPenguinIcons()
         setupStatusItem()
 
         // TODO: It is annoying to manually specify these... find some way to auto-register them.
         extensionManager.registerExtension(WindowExtension())
         extensionManager.registerExtension(ClipboardExtension())
+        extensionManager.registerExtension(BunnyExtension())
 
         let preferencesExtension = PreferencesExtension()
         extensionManager.registerExtension(preferencesExtension)
-        assert(preferencesExtension.getCommands().count == 1)
+        assert(preferencesExtension.getCommands().count >= 1)
         settingsCommand = preferencesExtension.getCommands()[0]
+        assert(settingsCommand?.title == "Preferences")
+
+        extensionManager.registerExtension(SystemPreferencePanesExtension())
 
         // TODO: Currently command ordering is defined by the order of registration.
         //       We need each command to track the last time it was invoked and sort by that.
@@ -163,20 +202,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            // Use a penguin emoji as our icon
-            let penguinEmoji = "🐧"
-            let penguinImage = NSImage(
-                size: NSSize(width: 14, height: 14),
-                flipped: false,
-                drawingHandler: { (rect) in
-                    penguinEmoji.draw(in: rect)
-                    return true
-                }
-            )
-            penguinImage.lockFocus()
-            Penguin.penguinIcon = penguinImage
-
-            button.image = penguinImage
+            button.image = Penguin.penguinIcon_20
             button.action = #selector(toggleSearchBar)
         }
 
@@ -209,8 +235,10 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     // New centralized method for showing the window
     private func showMainWindow() {
         // Store currently active app before we take focus
-        previousActiveApp = NSWorkspace.shared.frontmostApplication
-        print("Previous active app: \(previousActiveApp?.localizedName ?? "None")")
+        if window?.isVisible == false {
+            previousActiveApp = NSWorkspace.shared.frontmostApplication
+            print("Previous active app: \(previousActiveApp?.localizedName ?? "None")")
+        }
 
         window?.setIsVisible(true)
         window?.orderFrontRegardless()
@@ -234,12 +262,22 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func cancel(_ sender: Any?) {
+        print("Going back")
         _ = viewStack.popLast()
         if viewStack.count > 0 {
-            window?.contentView = viewStack.last
+            if let view = viewStack.last?() {
+                setWindowView(view: view)
+            }
+            showMainWindow()
+
         } else {
             hideMainWindow()
         }
+    }
+
+    // Close window when it loses focus
+    func windowDidResignKey(_ notification: Notification) {
+        hideMainWindow()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

@@ -5,14 +5,20 @@ struct ClipboardView: View {
     let clip = ClipboardManager.shared
 
     func onItemSelected(_ item: ClipboardItem) {
-        print("Pasting \(item.text.count) characters")
-        closeMainWindowAndPasteTextIntoApplication(text: item.text)
+        print("Pasting \(item) into application")
+        clip.closeMainWindowAndPasteItemIntoApplication(item: item)
     }
 
     var body: some View {
-        SearchableView(
+        FuzzySearchableView(
             items: clip.getItems(),
-            fuzzyMatchKey: { item in item.text },
+            fuzzyMatchKey: { item in 
+                if item.contentType == .text {
+                    return item.text!
+                } else {
+                    return item.previewText
+                }
+            },
             onItemSelected: onItemSelected
         ) { filteredItems, selectedItem, focusedIndex in
             HStack {
@@ -24,7 +30,7 @@ struct ClipboardView: View {
                     elem: { item in
                         Text(
                             // Only show the first line of the text
-                            String(item.text.split(separator: "\n").first ?? item.text[...])
+                            String(item.previewText)
                         )
                             .font(.system(.body, design: .monospaced))
                             .lineLimit(1)
@@ -39,25 +45,32 @@ struct ClipboardView: View {
                     if let current = selectedItem {
                         VStack {
 
-                            // TODO: It is not possible to copy selected text from this view
-                            //       with Cmd+C, because of some weirdness with how we have set up
-                            //       the panel/window I am guessing. Looking into it.
-                            ScrollView {
-                                Text(current.text)
-                                    .font(.system(size: 12, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(3)
-                                    .textSelection(.enabled)
+                            if current.contentType == .image {
+                                if let img = current.loadImage() {
+                                    Image(nsImage: img)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                } else {
+                                    Text("Error loading image")
+                                }
+                            } else {
+                                ScrollView {
+                                    Text(current.text!)
+                                        .font(.system(size: 12, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+// !                                        .padding(3)
+                                        .textSelection(.enabled)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                                .padding(3)
                             }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-                            .padding(3)
-
                             Spacer()
                             Divider()
                             HStack {
                                 Text("Time: \(current.timestamp.formatted(date: .abbreviated, time: .shortened))")
                                 Spacer()
-                                Text("Length: \(current.text.count) characters")
+                                Text("Size: \(current.sizeBytes) bytes")
                             }
                             .font(.system(size: 12))
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,6 +85,7 @@ struct ClipboardView: View {
                     Spacer()
                 }
                 .frame(maxWidth: .infinity)
+                .padding(.trailing, 15)
             }
         }
     }

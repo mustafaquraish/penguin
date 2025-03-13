@@ -30,7 +30,7 @@ public struct Command: Identifiable {
     }
 }
 
-func generateCommandId(extensionId: String, commandTitle: String) -> String {
+public func generateCommandId(extensionId: String, commandTitle: String) -> String {
     let sanitizedTitle =
         commandTitle
         .lowercased()
@@ -56,7 +56,7 @@ extension PenguinExtension {
 
     public func makeCommand(
         title: String,
-        subtitle: String,
+        subtitle: String? = nil,
         icon: NSImage? = nil,
         action: @escaping () -> (any View)? = { nil },
         settingsView: @escaping () -> (any View)? = { nil }

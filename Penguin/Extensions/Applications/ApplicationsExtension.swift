@@ -10,7 +10,6 @@ public class ApplicationsExtension: PenguinExtension {
         am.getApplications().map { app in
             makeCommand(
                 title: app.name,
-                subtitle: app.url.path,
                 icon: app.icon,
                 action: {
                     Penguin.shared.hideMainWindow()

@@ -8,7 +8,7 @@ struct PreferencesView: View {
         id: KeyboardShortcuts.Name.togglePenguinWindow.rawValue,
         title: "Penguin",
         subtitle: "General Preferences",
-        icon: Penguin.penguinIcon,
+        icon: Penguin.penguinIcon_64,
         action: { nil },  // This command is not used, it's just a placeholder
         settingsView: { GeneralPenguinPreferencesView() }
     )
@@ -21,7 +21,7 @@ struct PreferencesView: View {
     }
 
     var body: some View {
-        SearchableView(
+        FuzzySearchableView(
             items: items,
             fuzzyMatchKey: { item in item.title },
             onItemSelected: { _ in }
@@ -58,11 +58,13 @@ struct PreferencesView: View {
                         VStack {
                             // Top: Title and subtitle for the selected item
                             Text(selectedItem.title)
-                                .font(.headline)
-                                .padding(20)
+                                // .font(.headline)
+                                .font(.system(size: 20))
+                                .padding(.top, 10)
 
                             Text(selectedItem.subtitle ?? "")
                                 .font(.body)
+                                // .font(.system(size: 14))
                                 .foregroundColor(.gray)
 
                             Spacer()
@@ -117,7 +119,7 @@ public class PreferencesExtension: PenguinExtension {
                 id: PreferencesExtension.commandId,
                 title: "Preferences",
                 subtitle: "Open preferences",
-                icon: Penguin.penguinIcon,
+                icon: Penguin.penguinIcon_64,
                 action: {
                     PreferencesView()
                 }

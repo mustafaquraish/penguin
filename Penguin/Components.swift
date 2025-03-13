@@ -44,11 +44,10 @@ struct NonDraggableView<Content: View>: NSViewRepresentable {
 /// A generic view that provides fuzzy search functionality with keyboard navigation.
 /// It displays a search bar at the top, and the child closure
 /// can define how to layout the bottom portion (e.g. a list, details, etc.).
-struct SearchableView<Item, Content: View>: View {
+struct FuzzySearchableView<Item, Content: View>: View {
     @State private var searchText = ""
     @State private var focusedIndex: Int = 0
     @FocusState private var isSearchFieldFocused: Bool
-    @State private var eventMonitor: Any? = nil
 
     /// The full list of items to search.
     let items: [Item]
@@ -98,8 +97,8 @@ struct SearchableView<Item, Content: View>: View {
         VStack(spacing: 0) {
             // A search bar at the top with keyboard handling
             TextField("", text: $searchText, prompt: Text("Search"))
-                .font(.system(size: 17))
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .font(.system(size: 20))
+                .textFieldStyle(.automatic)
                 .padding()
                 .focused($isSearchFieldFocused)
                 .onAppear {
@@ -136,6 +135,90 @@ struct SearchableView<Item, Content: View>: View {
     }
 }
 
+// FIXME: Refactor this to share code with FuzzySearchableView, this is _essentially_ the same
+//        struct with `filteredItems` overridden, but we can't do inheritance with structs.
+struct ExternalSearchableView<Item, Content: View>: View {
+    @State private var searchText = ""
+    @State private var focusedIndex: Int = 0
+    @FocusState private var isSearchFieldFocused: Bool
+
+    var initialItems: [Item] = []
+    let performSearch: (String) -> [Item]
+
+    /// Optional callback triggered when the item is selected.
+    let onItemSelected: ((Item) -> Void)?
+
+    /// The child closure that defines how to layout the
+    /// bottom portion of the view (list, details, etc.).
+    @ViewBuilder let content:
+        (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>) -> Content
+
+
+    init(
+        performSearch: @escaping (String) -> [Item],
+        onItemSelected: ((Item) -> Void)?,
+        @ViewBuilder content: @escaping (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>) -> Content
+    ) {
+        self.initialItems = performSearch("")
+        self.performSearch = performSearch
+        self.onItemSelected = onItemSelected
+        self.content = content
+    }
+
+    @State private var filteredItems: [Item] = []
+
+    var selectedItem: Item? {
+        if focusedIndex < filteredItems.count {
+            return filteredItems[focusedIndex]
+        }
+        return nil
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // A search bar at the top with keyboard handling
+            TextField("", text: $searchText, prompt: Text("Search"))
+                .font(.system(size: 20))
+                .textFieldStyle(.automatic)
+                .padding()
+                .focused($isSearchFieldFocused)
+                .onAppear {
+                    isSearchFieldFocused = true
+                    focusedIndex = 0
+                    // FIXME: Calling performSearch() here causes the focus to be lost... not sure why,
+                    //        but it doesn't happen if we have pre-populated items.
+                    filteredItems = initialItems
+                }
+                .onDisappear {
+                    focusedIndex = 0
+                }
+                .onKeyPress(.upArrow) {
+                    focusedIndex = max(0, focusedIndex - 1)
+                    return .handled
+                }
+                .onKeyPress(.downArrow) {
+                    focusedIndex = min(filteredItems.count - 1, focusedIndex + 1)
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    if let selectedItem = selectedItem {
+                        if let onItemSelected = onItemSelected {
+                            onItemSelected(selectedItem)
+                        }
+                    }
+                    return .handled
+                }
+
+            // Child closure decides how to layout the filtered items and selected item details
+            content(filteredItems, selectedItem, $focusedIndex)
+        }
+        .onChange(of: searchText) { _, newSearchText in
+            filteredItems = performSearch(newSearchText)
+            focusedIndex = 0
+        }
+    }
+}
+
 struct ScrollingSelectionList<Item>: View {
     /// This will get passed in the filtered items, the selected item, and the focused index
     let items: [Item]
@@ -160,6 +243,7 @@ struct ScrollingSelectionList<Item>: View {
                             .contentShape(Rectangle())  // This makes the entire area interactive
 
                         AnyView(elem(item))
+                            .font(.system(size: 16))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(5)
                     }
