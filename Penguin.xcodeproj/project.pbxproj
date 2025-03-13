@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		453231102D82BCD500D9CC3A /* ConfettiSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 4532310F2D82BCD500D9CC3A /* ConfettiSwiftUI */; };
 		459901112D7B9E12009A0F46 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = 459901102D7B9E12009A0F46 /* KeyboardShortcuts */; };
 		45C65B132D7FE2FB00CD1255 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 45C65B122D7FE2FB00CD1255 /* LaunchAtLogin */; };
 /* End PBXBuildFile section */
@@ -57,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				453231102D82BCD500D9CC3A /* ConfettiSwiftUI in Frameworks */,
 				45C65B132D7FE2FB00CD1255 /* LaunchAtLogin in Frameworks */,
 				459901112D7B9E12009A0F46 /* KeyboardShortcuts in Frameworks */,
 			);
@@ -121,6 +123,7 @@
 			packageProductDependencies = (
 				459901102D7B9E12009A0F46 /* KeyboardShortcuts */,
 				45C65B122D7FE2FB00CD1255 /* LaunchAtLogin */,
+				4532310F2D82BCD500D9CC3A /* ConfettiSwiftUI */,
 			);
 			productName = Penguin;
 			productReference = 453FF2C32D7A8CA600DE7CFA /* Penguin.app */;
@@ -208,6 +211,7 @@
 				45311F802D7ADBA7002B1257 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
 				45311F812D7ADC21002B1257 /* XCRemoteSwiftPackageReference "HotKey" */,
 				45C65B112D7FE2FB00CD1255 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				4576F6A42D82BAB200563F5B /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 453FF2C42D7A8CA600DE7CFA /* Products */;
@@ -587,6 +591,14 @@
 				kind = branch;
 			};
 		};
+		4576F6A42D82BAB200563F5B /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/simibac/ConfettiSwiftUI/";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 		45C65B112D7FE2FB00CD1255 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
@@ -598,6 +610,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		4532310F2D82BCD500D9CC3A /* ConfettiSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4576F6A42D82BAB200563F5B /* XCRemoteSwiftPackageReference "ConfettiSwiftUI" */;
+			productName = ConfettiSwiftUI;
+		};
 		459901102D7B9E12009A0F46 /* KeyboardShortcuts */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 45311F802D7ADBA7002B1257 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
