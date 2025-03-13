@@ -113,7 +113,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
             // Use penguin emoji as a fallback
             let penguinEmoji = "🐧"
             let penguinImage = NSImage(
-                size: NSSize(width: 64, height: 64),
+                size: NSSize(width: 20, height: 20),
                 flipped: false,
                 drawingHandler: { (rect) in
                     penguinEmoji.draw(in: rect)
@@ -179,11 +179,6 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
         KeyboardShortcuts.onKeyUp(for: .togglePenguinWindow) { [weak self] in
             self?.toggleSearchBar()
         }
-        // Set cmd+ctrl+option+/ shortcut
-        KeyboardShortcuts.setShortcut(
-            KeyboardShortcuts.Shortcut(.slash, modifiers: [.command, .control, .option]),
-            for: .togglePenguinWindow
-        )
         // Local monitoring for cmd+, to open preferences
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "," {
