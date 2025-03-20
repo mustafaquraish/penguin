@@ -78,7 +78,7 @@ struct FuzzySearchableView<Item, Content: View>: View {
     /// The child closure that defines how to layout the
     /// bottom portion of the view (list, details, etc.).
     @ViewBuilder let content:
-        (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>) -> Content
+        (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>, _ searchText: Binding<String>) -> Content
 
     /// Returns only the items that pass the fuzzyMatch filter.
     var filteredItems: [Item] {
@@ -126,7 +126,83 @@ struct FuzzySearchableView<Item, Content: View>: View {
                 }
 
             // Child closure decides how to layout the filtered items and selected item details
-            content(filteredItems, selectedItem, $focusedIndex)
+            content(filteredItems, selectedItem, $focusedIndex, $searchText)
+        }
+        .onChange(of: filteredItems.count) { _, newCount in
+            // Reset focused index when the filtered results change
+            focusedIndex = newCount == 0 ? 0 : min(focusedIndex, newCount - 1)
+        }
+    }
+}
+
+
+// FIXME: Refactor this to share code with FuzzySearchableView, this is _essentially_ the same
+//        struct with `filteredItems` overridden, but we can't do inheritance with structs.
+struct NormalSearchableView<Item, Content: View>: View {
+    @State private var searchText = ""
+    @State private var focusedIndex: Int = 0
+    @FocusState private var isSearchFieldFocused: Bool
+
+    /// The full list of items to search.
+    let items: [Item]
+
+    let fuzzyMatchKey: (Item) -> String
+
+    /// Optional callback triggered when the item is selected.
+    let onItemSelected: ((Item) -> Void)?
+
+    /// The child closure that defines how to layout the
+    /// bottom portion of the view (list, details, etc.).
+    @ViewBuilder let content:
+        (_ filteredItems: [Item], _ selectedItem: Item?, _ focusedIndex: Binding<Int>, _ searchText: Binding<String>) -> Content
+
+    /// Returns only the items that pass the fuzzyMatch filter.
+    var filteredItems: [Item] {
+        guard !searchText.isEmpty else { return items }
+        return items.filter { fuzzyMatchKey($0).contains(searchText) }
+    }
+
+    var selectedItem: Item? {
+        if focusedIndex < filteredItems.count {
+            return filteredItems[focusedIndex]
+        }
+        return nil
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // A search bar at the top with keyboard handling
+            TextField("", text: $searchText, prompt: Text("Search"))
+                .font(.system(size: 20))
+                .textFieldStyle(.automatic)
+                .padding()
+                .focused($isSearchFieldFocused)
+                .onAppear {
+                    isSearchFieldFocused = true
+                    focusedIndex = 0
+                }
+                .onDisappear {
+                    focusedIndex = 0
+                }
+                .onKeyPress(.upArrow) {
+                    focusedIndex = max(0, focusedIndex - 1)
+                    return .handled
+                }
+                .onKeyPress(.downArrow) {
+                    focusedIndex = min(filteredItems.count - 1, focusedIndex + 1)
+                    return .handled
+                }
+                .onKeyPress(.return) {
+                    if let selectedItem = selectedItem {
+                        if let onItemSelected = onItemSelected {
+                            onItemSelected(selectedItem)
+                        }
+                    }
+                    return .handled
+                }
+
+            // Child closure decides how to layout the filtered items and selected item details
+            content(filteredItems, selectedItem, $focusedIndex, $searchText)
         }
         .onChange(of: filteredItems.count) { _, newCount in
             // Reset focused index when the filtered results change

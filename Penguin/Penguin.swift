@@ -108,32 +108,12 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func setupPenguinIcons() {
-        Penguin.penguinIcon_64 = NSImage(named: "penguin_64")
+        Penguin.penguinIcon_64 = loadImage(named: "penguin_64")
         if Penguin.penguinIcon_64 == nil {
-            // Use penguin emoji as a fallback
-            let penguinEmoji = "🐧"
-            let penguinImage = NSImage(
-                size: NSSize(width: 20, height: 20),
-                flipped: false,
-                drawingHandler: { (rect) in
-                    penguinEmoji.draw(in: rect)
-                    return true
-                }
-            )
-            penguinImage.lockFocus()
-            Penguin.penguinIcon_64 = penguinImage
+            Penguin.penguinIcon_64 = imageFromEmoji(emoji: "🐧", width: 20, height: 20)
         }
         if Penguin.penguinIcon_20 == nil {
-            let penguinImage = NSImage(
-                size: NSSize(width: 20, height: 20),
-                flipped: false,
-                drawingHandler: { (rect) in
-                    Penguin.penguinIcon_64?.draw(in: rect)
-                    return true
-                }
-            )
-            penguinImage.lockFocus()
-            Penguin.penguinIcon_20 = penguinImage
+            Penguin.penguinIcon_20 = resizeImage(image: Penguin.penguinIcon_64!, width: 20, height: 20)
         }
     }
 
@@ -208,7 +188,7 @@ class Penguin: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         let menu = NSMenu()
         menu.addItem(
-            NSMenuItem(title: "Search", action: #selector(toggleSearchBar), keyEquivalent: ""))
+            NSMenuItem(title: "Search", action: #selector(toggleSearchBar), keyEquivalent: "O"))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(
             NSMenuItem(title: "Settings", action: #selector(openPreferences), keyEquivalent: ",")

@@ -22,69 +22,6 @@ enum ExecutableError: Error {
     case jsonParsingFailed(Error)
 }
 
-// func runBunnyExecutable(path: String, argument: String) throws -> BunnyResponse {
-//     // Create process
-//     let process = Process()
-//     process.executableURL = URL(fileURLWithPath: path)
-//     process.arguments = [argument]
-
-//     // Important: Set launch path to prevent focus issues
-//     process.launchPath = path
-
-//     // Prevent the process from stealing focus
-//     process.qualityOfService = .background
-
-//     // Set process not to launch in a new window
-//     process.environment = ["NSRequiresAquaSystemAppearance": "NO"]
-
-//     // Set up pipes for output
-//     let outputPipe = Pipe()
-//     process.standardOutput = outputPipe
-
-//     let errorPipe = Pipe()
-//     process.standardError = errorPipe
-
-//     // Store the current app that has focus
-//     let currentApp = NSWorkspace.shared.frontmostApplication
-
-//     // Run the process
-//     do {
-//         try process.run()
-//         process.waitUntilExit()
-//     } catch {
-//         throw ExecutableError.executionFailed("Failed to execute process: \(error.localizedDescription)")
-//     }
-
-//     // Restore focus to the original application
-//     if let currentApp = currentApp {
-//         DispatchQueue.main.async {
-//             if let bundleURL = currentApp.bundleURL {
-//                 NSWorkspace.shared.open(bundleURL)
-//             }
-//         }
-//     }
-
-//     // Check if process exited successfully
-//     if process.terminationStatus != 0 {
-//         let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-//         let errorMessage = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-//         throw ExecutableError.executionFailed("Process failed with status \(process.terminationStatus): \(errorMessage)")
-//     }
-
-//     // Get output data
-//     let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-
-//     // Parse JSON
-//     do {
-//         let decoder = JSONDecoder()
-//         return try decoder.decode(BunnyResponse.self, from: outputData)
-//     } catch {
-//         print("JSON parsing error: \(error)")
-//         print("Raw output: \(String(data: outputData, encoding: .utf8) ?? "Unable to convert output to string")")
-//         throw ExecutableError.jsonParsingFailed(error)
-//     }
-// }
-
 func runExecutableAndParseJSON(executablePath: String, argument: String) throws -> BunnyResponse {
     let process = Process()
     let outputPipe = Pipe()
@@ -141,7 +78,12 @@ struct BunnyView: View {
     }
 
     private func onItemSelected(_ item: BunnyItem) {
-        print("Selected item: \(item.title)")
+        Penguin.shared.hideMainWindow()
+        print("Bunny: selected item: \(item.title)")
+        // `arg` is a URL, open it
+        if let url = URL(string: item.arg) {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     var body: some View {

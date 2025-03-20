@@ -25,7 +25,7 @@ struct PreferencesView: View {
             items: items,
             fuzzyMatchKey: { item in item.title },
             onItemSelected: { _ in }
-        ) { filteredItems, selectedItem, focusedIndex in
+        ) { filteredItems, selectedItem, focusedIndex, searchText in
             HStack {
                 ScrollingSelectionList(
                     items: filteredItems,

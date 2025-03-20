@@ -1,4 +1,4 @@
-import Cocoa
+// import Cocoa
 import SwiftUI
 
 struct ClipboardView: View {
@@ -9,8 +9,18 @@ struct ClipboardView: View {
         clip.closeMainWindowAndPasteItemIntoApplication(item: item)
     }
 
+    private func highlightedString(text: String, searchText: String) -> AttributedString {
+        var attributedString = AttributedString(text)
+
+        if let range = attributedString.range(of: searchText) {
+            attributedString[range].backgroundColor = .yellow
+        }
+
+        return attributedString
+    }
+
     var body: some View {
-        FuzzySearchableView(
+        NormalSearchableView(
             items: clip.getItems(),
             fuzzyMatchKey: { item in 
                 if item.contentType == .text {
@@ -20,7 +30,7 @@ struct ClipboardView: View {
                 }
             },
             onItemSelected: onItemSelected
-        ) { filteredItems, selectedItem, focusedIndex in
+        ) { filteredItems, selectedItem, focusedIndex, searchText in
             HStack {
                 ScrollingSelectionList(
                     items: filteredItems,
@@ -56,7 +66,7 @@ struct ClipboardView: View {
                                 }
                             } else {
                                 ScrollView {
-                                    Text(current.text!)
+                                    Text(highlightedString(text: current.text!, searchText: searchText.wrappedValue))
                                         .font(.system(size: 12, design: .monospaced))
                                         .frame(maxWidth: .infinity, alignment: .leading)
 // !                                        .padding(3)

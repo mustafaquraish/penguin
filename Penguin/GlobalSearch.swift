@@ -72,7 +72,7 @@ struct GlobalSearchView: View {
             items: items,
             fuzzyMatchKey: { item in item.title },
             onItemSelected: handleItemSelected
-        ) { filteredItems, selectedItem, focusedIndex in
+        ) { filteredItems, selectedItem, focusedIndex, searchText in
             ScrollingSelectionList(
                 items: filteredItems,
                 focusedIndex: focusedIndex,
